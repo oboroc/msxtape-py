@@ -102,3 +102,10 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Visual Studio 2017
+Debug/
+Release/
+v15/
+*.VC.db
+*.VC.opendb
