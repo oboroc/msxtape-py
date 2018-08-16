@@ -109,3 +109,6 @@ Release/
 v15/
 *.VC.db
 *.VC.opendb
+
+# Ignore wav files
+.wav
