@@ -111,4 +111,4 @@ v15/
 *.VC.opendb
 
 # Ignore wav files
-.wav
+*.wav
