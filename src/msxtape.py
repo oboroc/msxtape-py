@@ -14,9 +14,9 @@ def msxtape():
 #    print(__file__)
 #    print(globals())
 
-    sampleRate = 22050.0    # hertz
-    duration = 3.0          # seconds
-    frequency = 2400.0      # hertz
+    sampleRate = 22050.0    # hz
+    duration = 3.0          # sec
+    frequency = 2400.0      # hz
 
     wavf = wave.open('file.wav','w')
     wavf.setnchannels(1)    # mono
