@@ -14,23 +14,24 @@ def msxtape():
 #    print(__file__)
 #    print(globals())
 
-    duration = 5.0          # sec
-    sampleRate = 44100.0    # hz
+    duration = 3.0          # sec
+    sample_rate = 44100.0   # hz
+    sample_width = 2        # bytes per sample
     frequency = 1200.0      # hz
 
     wavf = wave.open('file.wav','w')
     wavf.setnchannels(1)    # mono
-    wavf.setsampwidth(2)    # 16 bit
-    wavf.setframerate(sampleRate)
+    wavf.setsampwidth(sample_width)
+    wavf.setframerate(sample_rate)
 
-    squarevol = 20000
-
-    for i in range(int(duration * sampleRate)):
-        value = int(32767.0 * math.sin(frequency * math.pi * float(i) / float(sampleRate)))
+    maxvol = pow(2, sample_width * 8 - 1) - 1   # this is 127 for 8 bit samples and 32767 for 16 bit
+    
+    for i in range(int(duration * sample_rate)):
+        value = int(maxvol * math.sin(frequency * math.pi * float(i) / float(sample_rate)))
         if value > 0:
-            value = squarevol
+            value = maxvol
         if value <= 0:
-            value = -squarevol
+            value = -maxvol
         data = struct.pack('<h', value)
         wavf.writeframes(data)
 
