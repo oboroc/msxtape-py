@@ -6,35 +6,35 @@
 
 def msxtape():
     """
-    main function - for now just make a 3 second 2.4KHz beep
+    main function - for now just make a 5 second long 1200Hz beep
     """
 
-    import wave, struct, math
+    import wave, struct
 
 #    print(__file__)
 #    print(globals())
 
-    duration = 3.0          # sec
-    sample_rate = 44100.0   # hz
+    duration = 5.0         # seconds
+    frequency = 1200.0      # hertz
+    sample_rate = 44100.0   # hertz
     sample_width = 2        # bytes per sample
-    frequency = 1200.0      # hz
 
     wavf = wave.open('file.wav','w')
     wavf.setnchannels(1)    # mono
     wavf.setsampwidth(sample_width)
     wavf.setframerate(sample_rate)
 
-    maxvol = pow(2, sample_width * 8 - 1) - 1   # this is 127 for 8 bit samples and 32767 for 16 bit
-    
+    maxvol = pow(2, sample_width * 8 - 1) - 1   # this is 32767 for 16 bit, it should work for 16 bit or more samples, 8 bit samples are unsigned char (0..255)
+    minvol = -maxvol - 1
+    period = sample_rate / frequency
     for i in range(int(duration * sample_rate)):
-        value = int(maxvol * math.sin(frequency * math.pi * float(i) / float(sample_rate)))
-        if value > 0:
+        pos = i % period # position within period
+        if pos * 2 < period:    # is it first half-period?
             value = maxvol
-        if value <= 0:
-            value = -maxvol
+        else:
+            value = minvol
         data = struct.pack('<h', value)
         wavf.writeframes(data)
-
     wavf.close()
 
 
