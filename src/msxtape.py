@@ -14,7 +14,7 @@ def msxtape():
 #    print(__file__)
 #    print(globals())
 
-    duration = 5.0         # seconds
+    duration = 5.0          # seconds
     frequency = 1200.0      # hertz
     sample_rate = 44100.0   # hertz
     sample_width = 2        # bytes per sample
