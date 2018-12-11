@@ -109,6 +109,7 @@ Release/
 v15/
 *.VC.db
 *.VC.opendb
+UpgradeLog.htm
 
 # Ignore wav files
 *.wav
