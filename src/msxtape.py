@@ -24,7 +24,10 @@ def msxtape():
     wavf.setsampwidth(sample_width)
     wavf.setframerate(sample_rate)
 
-    maxvol = pow(2, sample_width * 8 - 1) - 1   # this is 32767 for 16 bit, it should work for 16 bit or more samples, 8 bit samples are unsigned char (0..255)
+    # this is 32767 for 16 bit
+    # it should work for 16 bit or more samples
+    # 8 bit samples are unsigned char (0..255)
+    maxvol = pow(2, sample_width * 8 - 1) - 1
     minvol = -maxvol - 1
     period = sample_rate / frequency
     for i in range(int(duration * sample_rate)):
