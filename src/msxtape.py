@@ -31,7 +31,7 @@ def msxtape():
     minvol = -maxvol - 1
     period = sample_rate / frequency
     for i in range(int(duration * sample_rate)):
-        pos = i % period # position within period
+        pos = i % period    # position within period
         if pos * 2 < period:    # is it first half-period?
             value = maxvol
         else:
