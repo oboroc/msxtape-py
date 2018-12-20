@@ -3,6 +3,8 @@
     [hopefully a] python program for generating wav file form msx cas file
 """
 
+def write_tone(freq, dur):
+    print('write_tone(' + str(freq) + ', ' + str(dur) + ')')
 
 def msxtape():
     """
@@ -18,6 +20,8 @@ def msxtape():
     frequency = 1200.0      # hertz
     sample_rate = 44100.0   # hertz
     sample_width = 2        # bytes per sample
+
+    write_tone(duration, frequency)
 
     wavf = wave.open('file.wav','w')
     wavf.setnchannels(1)    # mono
