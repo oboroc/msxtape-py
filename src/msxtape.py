@@ -4,24 +4,11 @@
 """
 
 def write_tone(freq, dur):
-    print('write_tone(' + str(freq) + ', ' + str(dur) + ')')
-
-def msxtape():
-    """
-    main function - for now just make a 5 second long 1200Hz beep
-    """
-
     import wave, struct
 
-#    print(__file__)
-#    print(globals())
-
-    duration = 5.0          # seconds
-    frequency = 1200.0      # hertz
+    print('write_tone(', freq, ', ', dur, ')')
     sample_rate = 44100.0   # hertz
     sample_width = 2        # bytes per sample
-
-    write_tone(duration, frequency)
 
     wavf = wave.open('file.wav','w')
     wavf.setnchannels(1)    # mono
@@ -33,8 +20,8 @@ def msxtape():
     # 8 bit samples are unsigned char (0..255)
     maxvol = pow(2, sample_width * 8 - 1) - 1
     minvol = -maxvol - 1
-    period = sample_rate / frequency
-    for i in range(int(duration * sample_rate)):
+    period = sample_rate / freq
+    for i in range(int(dur * sample_rate)):
         pos = i % period    # position within period
         if pos * 2 < period:    # is it first half-period?
             value = maxvol
@@ -45,5 +32,18 @@ def msxtape():
     wavf.close()
 
 
+def main():
+    """
+    main function - for now just make a 5 second long 1200Hz beep
+    """
+#    print(__file__)
+#    print(globals())
+
+    frequency = 1200.0      # hertz
+    duration = 5.0          # seconds
+    write_tone(frequency, duration)
+
+
+
 if __name__ == "__main__":
-    msxtape()
+    main()
