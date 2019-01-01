@@ -10,11 +10,15 @@ class msxtape:
         self.sample_rate = s_rate
         self.sample_width = s_width
 
+        self.wavf = wave.open('file.wav','w')
+        self.wavf.setnchannels(1)    # mono
+        self.wavf.setsampwidth(self.sample_width)
+        self.wavf.setframerate(self.sample_rate)
+
+    def __del__(self):
+        self.wavf.close()
+
     def write_tone(self, freq, dur):
-        wavf = wave.open('file.wav','w')
-        wavf.setnchannels(1)    # mono
-        wavf.setsampwidth(self.sample_width)
-        wavf.setframerate(self.sample_rate)
 
         # this is 32767 for 16 bit
         # it should work for 16 bit or more samples
@@ -29,8 +33,7 @@ class msxtape:
             else:
                 value = minvol
             data = struct.pack('<h', value)
-            wavf.writeframes(data)
-        wavf.close()
+            self.wavf.writeframes(data)
 
 
 def main():
