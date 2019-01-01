@@ -38,16 +38,16 @@ class msxtape:
 
 def main():
     """
-    main function - for now just make a 5 second long 1200Hz beep
+    main function - for now just make some beeps
     """
 #    print(__file__)
 #    print(globals())
 
     t = msxtape('file.wav')
 
-    frequency = 1200.0      # hertz
-    duration = 5.0          # seconds
-    t.write_tone(frequency, duration)
+    t.write_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
+    t.write_tone(2400.0, 1.0)
+    t.write_tone(1200.0, 1.0)
     
 if __name__ == "__main__":
     main()
