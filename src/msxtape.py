@@ -6,7 +6,7 @@
 import wave, struct
 
 class msxtape:
-    def __init__(self, s_rate, s_width):
+    def __init__(self, s_rate = 44100.0, s_width = 2):
         self.sample_rate = s_rate
         self.sample_width = s_width
 
@@ -40,9 +40,7 @@ def main():
 #    print(__file__)
 #    print(globals())
 
-    sample_rate = 44100.0   # hertz
-    sample_width = 2        # bytes per sample
-    t = msxtape(sample_rate, sample_width)
+    t = msxtape()
 
     frequency = 1200.0      # hertz
     duration = 5.0          # seconds
