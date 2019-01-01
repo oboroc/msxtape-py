@@ -6,11 +6,11 @@
 import wave, struct
 
 class msxtape:
-    def __init__(self, s_rate = 44100.0, s_width = 2):
+    def __init__(self, f_name, s_rate = 44100.0, s_width = 2):
         self.sample_rate = s_rate
         self.sample_width = s_width
 
-        self.wavf = wave.open('file.wav','w')
+        self.wavf = wave.open(f_name,'w')
         self.wavf.setnchannels(1)    # mono
         self.wavf.setsampwidth(self.sample_width)
         self.wavf.setframerate(self.sample_rate)
@@ -43,7 +43,7 @@ def main():
 #    print(__file__)
 #    print(globals())
 
-    t = msxtape()
+    t = msxtape('file.wav')
 
     frequency = 1200.0      # hertz
     duration = 5.0          # seconds
