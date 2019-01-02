@@ -10,7 +10,7 @@ class msxtape:
         self.sample_rate = s_rate
         self.sample_width = s_width
 
-        self.wavf = wave.open(f_name,'w')
+        self.wavf = wave.open(f_name, 'w')
         self.wavf.setnchannels(1)    # mono
         self.wavf.setsampwidth(self.sample_width)
         self.wavf.setframerate(self.sample_rate)
@@ -19,12 +19,17 @@ class msxtape:
         self.wavf.close()
 
     def write_tone(self, freq, dur):
+        # WARNING: this was tested with 16-bit samples only for now
 
-        # this is 32767 for 16 bit
-        # it should work for 16 bit or more samples
-        # 8 bit samples are unsigned char (0..255)
-        maxvol = pow(2, self.sample_width * 8 - 1) - 1
-        minvol = -maxvol - 1
+        if self.sample_width > 1:
+            # this is 32767 for 16 bit, it should work for 16 bit or more samples
+            maxvol = pow(2, self.sample_width * 8 - 1) - 1
+            minvol = -maxvol - 1
+        else:
+            # 8 bit samples are unsigned char (0..255)
+            maxvol = 255
+            minvol = 0
+
         period = self.sample_rate / freq
         for i in range(int(dur * self.sample_rate)):
             pos = i % period    # position within period
