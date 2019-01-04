@@ -10,21 +10,24 @@ class msxtape:
         self.sample_rate = s_rate
         self.sample_width = s_width
 
+        self.pcm_data = []
+
         self.wavf = wave.open(f_name, 'w')
         self.wavf.setnchannels(1)    # mono
         self.wavf.setsampwidth(self.sample_width)
         self.wavf.setframerate(self.sample_rate)
 
         # WARNING: this was tested with 16-bit samples only for now
-        if self.sample_width > 1:
-            # -32768 and 32767 for 16 bit, should work with samples 2 bytes wide or more
-            self.minvol = -pow(2, self.sample_width * 8 - 1)
-            self.maxvol = -self.minvol - 1
-
-        else:
+        if self.sample_width == 1:
             # 8 bit samples are unsigned char (0..255)
             self.minvol = 0
             self.maxvol = 255
+        elif self.sample_width == 2:
+            # -32768 and 32767 for 16 bit, should work with samples 2 bytes wide or more
+            self.minvol = -pow(2, self.sample_width * 8 - 1)
+            self.maxvol = -self.minvol - 1
+        else:
+            raise ValueError('Unexpected sample width')
 
         print('minvol =', self.minvol)
         print('maxvol =', self.maxvol)
@@ -34,10 +37,13 @@ class msxtape:
         print('z80 cycle duration in microseconds', self.Z80_CYCLE)
         print('373 cycles in microseconds', 373 * self.Z80_CYCLE)
 
+
     def __del__(self):
         self.wavf.close()
 
+
     def write_tone(self, freq, dur):
+        pcm_bytes = 0
         period = self.sample_rate / freq
         for i in range(int(dur * self.sample_rate)):
             pos = i % period    # position within period
@@ -45,8 +51,20 @@ class msxtape:
                 value = self.minvol
             else:
                 value = self.maxvol
-            data = struct.pack('<h', value)
-            self.wavf.writeframes(data)
+
+            if self.sample_width == 1:
+                self.pcm_data.append(value & 0xff)
+                pcm_bytes = pcm_bytes + 1
+            else:
+                self.pcm_data.append(value & 0xff)
+                self.pcm_data.append((value >> 8) & 0xff)
+
+        # pad pcm data with one extra byte if we ended up with odd number of bytes
+        if (self.sample_width == 1) and ((pcm_bytes & 1) == 1):
+                self.pcm_data.append(0)
+
+        ba = bytearray(self.pcm_data)
+        self.wavf.writeframes(ba)
 
 
 def main():
@@ -58,7 +76,7 @@ def main():
 
     t = msxtape('file.wav')
 
-    t.write_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
+    t.write_tone(1200.0, 13.0)   # frequency in hertz and duration in seconds
 #    t.write_tone(2400.0, 1.0)
 #    t.write_tone(1200.0, 1.0)
     
