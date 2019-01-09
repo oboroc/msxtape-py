@@ -6,7 +6,7 @@
 import wave, struct
 
 class msxtape:
-    def __init__(self, f_name, s_rate = 44100.0, s_width = 2):
+    def __init__(self, f_name, s_rate = 44100.0, s_width = 1):
         self.sample_rate = s_rate
         self.sample_width = s_width
 
@@ -17,7 +17,6 @@ class msxtape:
 
         self.pcm_data = []
 
-        # WARNING: this was tested with 16-bit samples only for now
         if self.sample_width == 1:
             # 8 bit samples are unsigned char (0..255)
             self.minvol = 0
@@ -35,9 +34,12 @@ class msxtape:
 
 
     def __del__(self):
+        # pad pcm data with one extra byte if we ended up with odd number of bytes
+        if (self.sample_width == 1) and ((pcm_bytes & 1) == 1):
+            self.pcm_data.append(0)
+
         ba = bytearray(self.pcm_data)
         self.wavf.writeframes(ba)
-
         self.wavf.close()
 
 
@@ -58,9 +60,6 @@ class msxtape:
                 self.pcm_data.append(value & 0xff)
                 self.pcm_data.append((value >> 8) & 0xff)
 
-        # pad pcm data with one extra byte if we ended up with odd number of bytes
-        if (self.sample_width == 1) and ((pcm_bytes & 1) == 1):
-                self.pcm_data.append(0)
 
 def main():
     """
@@ -68,6 +67,7 @@ def main():
     """
 #    print(__file__)
 #    print(globals())
+
 
     t = msxtape('file.wav')
 
