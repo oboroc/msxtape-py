@@ -17,7 +17,7 @@ class msxtape:
             # 8 bit samples are unsigned char (0..255)
             self.minvol = 0
             self.maxvol = 255
-        elif self.sample_width == 2:
+        elif self.sample_width > 1:
             # -32768 and 32767 for 16 bit, should work with samples 2 bytes wide or more
             self.minvol = -pow(2, self.sample_width * 8 - 1)
             self.maxvol = -self.minvol - 1
@@ -53,9 +53,11 @@ class msxtape:
 
             if self.sample_width == 1:
                 self.pcm_data.append(value & 0xff)
-            else:
+            elif self.sample_width == 2:
                 self.pcm_data.append(value & 0xff)
                 self.pcm_data.append((value >> 8) & 0xff)
+            else:
+                raise ValueError('Unsupported sample width')
 
 
 def main():
