@@ -35,7 +35,7 @@ class msxtape:
 
     def __del__(self):
         # pad pcm data with one extra byte if we ended up with odd number of bytes
-        if (self.sample_width == 1) and ((pcm_bytes & 1) == 1):
+        if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
 
         ba = bytearray(self.pcm_data)
@@ -44,7 +44,6 @@ class msxtape:
 
 
     def add_tone(self, freq, dur):
-        pcm_bytes = 0
         period = self.sample_rate / freq
         for i in range(int(dur * self.sample_rate)):
             pos = i % period    # position within period
@@ -55,7 +54,6 @@ class msxtape:
 
             if self.sample_width == 1:
                 self.pcm_data.append(value & 0xff)
-                pcm_bytes = pcm_bytes + 1
             else:
                 self.pcm_data.append(value & 0xff)
                 self.pcm_data.append((value >> 8) & 0xff)

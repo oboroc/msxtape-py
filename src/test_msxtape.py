@@ -11,7 +11,7 @@ class Test_msxtape(unittest.TestCase):
         t.add_tone(1200.0, 1.01)    # 1.01 seconds generates odd number of pcm data bytes
         l = len(t.pcm_data)
         del t
-        self.assertEqual(1, 1, 'incorrect default size')
+        self.assertEqual(1, 1, 'oh no')
 
 if __name__ == '__main__':
     unittest.main()
