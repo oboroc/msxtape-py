@@ -7,13 +7,9 @@ import wave, struct
 
 class msxtape:
     def __init__(self, f_name, s_rate = 44100.0, s_width = 1):
+        self.file_name = f_name
         self.sample_rate = s_rate
         self.sample_width = s_width
-
-        self.wavf = wave.open(f_name, 'w')
-        self.wavf.setnchannels(1)    # mono
-        self.wavf.setsampwidth(self.sample_width)
-        self.wavf.setframerate(self.sample_rate)
 
         self.pcm_data = []
 
@@ -37,10 +33,13 @@ class msxtape:
         # pad pcm data with one extra byte if we ended up with odd number of bytes
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
-
         ba = bytearray(self.pcm_data)
-        self.wavf.writeframes(ba)
-        self.wavf.close()
+        wavf = wave.open(self.file_name, 'w')
+        wavf.setnchannels(1)    # mono
+        wavf.setsampwidth(self.sample_width)
+        wavf.setframerate(self.sample_rate)
+        wavf.writeframes(ba)
+        wavf.close()
 
 
     def add_tone(self, freq, dur):
