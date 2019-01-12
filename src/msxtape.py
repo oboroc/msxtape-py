@@ -3,10 +3,14 @@
     [hopefully a] python program for generating wav file form msx cas file
 """
 
-import wave, struct
+import wave
 
 class msxtape:
     def __init__(self, f_name, s_rate = 44100.0, s_width = 1):
+        """
+        constructor - initializes constants and variables
+        """
+
         self.file_name = f_name
         self.sample_rate = s_rate
         self.sample_width = s_width
@@ -30,6 +34,10 @@ class msxtape:
 
 
     def __del__(self):
+        """
+        destructor - dumps pcm data to a file
+        """
+
         # pad pcm data with one extra byte if we ended up with odd number of bytes
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
@@ -43,6 +51,9 @@ class msxtape:
 
 
     def add_tone(self, freq, dur):
+        """
+        add_tone function - adds a tone with specified frequency and duration to pcm_data
+        """
         period = self.sample_rate / freq
         for i in range(int(dur * self.sample_rate)):
             pos = i % period    # position within period
@@ -66,10 +77,7 @@ def main():
     """
 #    print(__file__)
 #    print(globals())
-
-
     t = msxtape('file.wav')
-
     t.add_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
     t.add_tone(2400.0, 1.0)
     t.add_tone(1200.0, 1.0)
