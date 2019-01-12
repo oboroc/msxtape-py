@@ -11,13 +11,10 @@ class msxtape:
         """
         constructor - initializes constants and variables
         """
-
         self.file_name = f_name
         self.sample_rate = s_rate
         self.sample_width = s_width
-
         self.pcm_data = []
-
         if self.sample_width == 1:
             # 8 bit samples are unsigned char (0..255)
             self.minvol = 0
@@ -28,7 +25,6 @@ class msxtape:
             self.maxvol = -self.minvol - 1
         else:
             raise ValueError('Unexpected sample width')
-
         #MSX_Z80_FREQ = 3580000  # 3.58 MHz
         #self.Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
         #print('373 cycles in microseconds', 373 * self.Z80_CYCLE)
@@ -38,7 +34,6 @@ class msxtape:
         """
         destructor - dumps pcm data to a file
         """
-
         # pad pcm data with one extra byte if we ended up with odd number of bytes
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
@@ -52,7 +47,7 @@ class msxtape:
 
     def add_value(self, value):
         """
-        add_value function - add value to pcm data
+        add_value - add value to pcm data
         """
         if self.sample_width == 1:
             self.pcm_data.append(value & 0xff)
@@ -65,7 +60,7 @@ class msxtape:
 
     def add_tone(self, freq, dur):
         """
-        add_tone function - adds a tone with specified frequency and duration to pcm_data
+        add_tone - adds a tone with specified frequency and duration to pcm_data
         """
         period = self.sample_rate / freq
         for i in range(int(dur * self.sample_rate)):
@@ -79,7 +74,7 @@ class msxtape:
 
     def add_bit_0(self, freq):
         """
-        add_bit_0 function - encode a bit with value of 0
+        add_bit_0 - encode a bit with value of 0
         write one pulse at given frequency
         """
         samples_per_pulse = self.sample_rate / freq
@@ -96,7 +91,7 @@ class msxtape:
 
     def add_bit_1(self, freq):
         """
-        add_bit_1 function - encode a bit with value of 1
+        add_bit_1 - encode a bit with value of 1
         write two pusles at twice the given frequency
         """
         self.add_bit_0(freq * 2)
@@ -132,11 +127,64 @@ class msxtape:
 
     def add_long_header(self, freq):
         """
-        add_long_header function - encode ~6.7 seconds of freq * 2 tone
+        add_long_header - encode ~6.7 seconds of freq * 2 tone
         long header is 4x times the duration of short header
         """
         for i in range(4):
             self.add_short_header(freq)
+
+
+    def add_cas(self, freq, cas_name):
+        """
+        read_cas - 
+        """
+        CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
+        BASIC_CODE = 0xd3
+        ASCII_CODE = 0xea
+        BINARY_CODE = 0xd0
+        CODE_LEN = 10
+
+        f = open(cas_name, 'rb')
+        if not f:
+            print("Can't open file", cas_name)
+            return
+
+        cas_data = f.read(len(CAS_HEADER))
+        if not cas_data:
+            print("Can't read data from file", cas_name)
+            return
+
+        for i in range(len(CAS_HEADER)):
+            if cas_data[i] != CAS_HEADER[i]:
+                print("File", cas_name, "doesn't have a valid CAS header")
+                return
+
+        cas_data = f.read(CODE_LEN)
+        basic = ascii = binary = 0
+        for i in range(len(cas_data)):
+            if cas_data[i] == BASIC_CODE:
+                basic = basic + 1
+            if cas_data[i] == ASCII_CODE:
+                ascii = ascii + 1
+            if cas_data[i] == BINARY_CODE:
+                binary = binary + 1
+
+        if basic == CODE_LEN:
+            print('basic block')
+        elif ascii == CODE_LEN:
+            print('ascii block')
+        elif binary == CODE_LEN:
+            print('binary block')
+        else:
+            s = 'Unexpected block header:'
+            for i in range(len(cas_data)):
+                s = s + ' ' + hex(cas_data[i])
+            print(s)
+            return
+
+        self.add_long_header(freq)
+        for i in range(len(cas_data)):
+            self.add_byte(freq, cas_data[i])
 
 
 def main():
@@ -146,8 +194,7 @@ def main():
 #    print(__file__)
 #    print(globals())
     t = msxtape('file.wav')
-    t.add_long_header(1200)
-
+    t.add_cas(1200, '1.cas')
     
 if __name__ == "__main__":
     main()
