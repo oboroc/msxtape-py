@@ -29,9 +29,9 @@ class msxtape:
         else:
             raise ValueError('Unexpected sample width')
 
-        MSX_Z80_FREQ = 3580000  # 3.58 MHz
-        self.Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
-        print('373 cycles in microseconds', 373 * self.Z80_CYCLE)
+        #MSX_Z80_FREQ = 3580000  # 3.58 MHz
+        #self.Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
+        #print('373 cycles in microseconds', 373 * self.Z80_CYCLE)
 
 
     def __del__(self):
@@ -80,6 +80,7 @@ class msxtape:
     def add_bit_0(self, freq):
         """
         add_bit_0 function - encode a bit with value of 0
+        write one pulse at given frequency
         """
         samples_per_pulse = self.sample_rate / freq
         last_sample = len(self.pcm_data)
@@ -93,6 +94,51 @@ class msxtape:
             self.add_value(self.maxvol)
 
 
+    def add_bit_1(self, freq):
+        """
+        add_bit_1 function - encode a bit with value of 1
+        write two pusles at twice the given frequency
+        """
+        self.add_bit_0(freq * 2)
+        self.add_bit_0(freq * 2)
+
+
+    def add_byte(self, freq, a_byte):
+        """
+        add_byte function - encode a byte
+        write start bit 0, 8 byte bits and two stop bits 1
+        """
+        self.add_bit_0(freq)    # start bit
+        for i in range(8):      # 8 bits in given byte
+            a_bit = (a_byte >> i) & 1
+            if a_bit == 0:
+                self.add_bit_0(freq)
+            else:
+                self.add_bit_1(freq)
+        self.add_bit_1(freq)    # 2 stop bits
+        self.add_bit_1(freq)
+
+
+    def add_short_header(self, freq):
+        """
+        add_short_header function - encode ~1.7 seconds of freq * 2 tone
+        for tape speed of 1200 bod, we need 4000 pulses
+        for tape speed of 2400 bod, we need 8000 pulses
+        """
+        total_pulses = round(freq * 4000 / 1200.0)
+        for i in range(total_pulses):
+            self.add_bit_0(freq * 2)
+
+
+    def add_long_header(self, freq):
+        """
+        add_long_header function - encode ~6.7 seconds of freq * 2 tone
+        long header is 4x times the duration of short header
+        """
+        for i in range(4):
+            self.add_short_header(freq)
+
+
 def main():
     """
     main function - for now just make some beeps
@@ -100,9 +146,8 @@ def main():
 #    print(__file__)
 #    print(globals())
     t = msxtape('file.wav')
-#    t.add_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
-    for i in range(100):
-        t.add_bit_0(1200.0)
+    t.add_long_header(1200)
+
     
 if __name__ == "__main__":
     main()
