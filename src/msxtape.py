@@ -143,6 +143,7 @@ class msxtape:
         ASCII_CODE = 0xea
         BINARY_CODE = 0xd0
         CODE_LEN = 10
+        FNAME_LEN = 6
 
         f = open(cas_name, 'rb')
         if not f:
@@ -170,11 +171,11 @@ class msxtape:
                 binary = binary + 1
 
         if basic == CODE_LEN:
-            print('basic block')
+            print('Basic block')
         elif ascii == CODE_LEN:
-            print('ascii block')
+            print('Ascii block')
         elif binary == CODE_LEN:
-            print('binary block')
+            print('Binary block')
         else:
             s = 'Unexpected block header:'
             for i in range(len(cas_data)):
@@ -186,6 +187,17 @@ class msxtape:
         for i in range(len(cas_data)):
             self.add_byte(freq, cas_data[i])
 
+        # 6 bytes file name
+        cas_data = f.read(FNAME_LEN)
+        fname = ''
+        for i in range(len(cas_data)):
+            if cas_data[i] >= 32:
+                fname = fname + chr(cas_data[i])
+        print('File name:', '"' + fname + '"')
+        for i in range(len(cas_data)):
+            self.add_byte(freq, cas_data[i])
+        self.add_short_header(freq)
+
 
 def main():
     """
@@ -194,7 +206,7 @@ def main():
 #    print(__file__)
 #    print(globals())
     t = msxtape('file.wav')
-    t.add_cas(1200, '1.cas')
+    t.add_cas(1200, '2.cas')
     
 if __name__ == "__main__":
     main()
