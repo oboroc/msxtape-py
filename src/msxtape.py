@@ -92,7 +92,40 @@ class msxtape:
         Third bit 0 starts at sample 75 and goes on until 3*36.75=110.25 ~ 110. 110-74=36.
         So all three bits are encoded by 37+37+36=110 samples.
         """
-        previous_sample_no = len(self.pcm_data)
+        samples_per_pulse = self.sample_rate / freq
+
+        last_sample = len(self.pcm_data)
+        print('last_sample =', last_sample)
+
+        last_pulse = round(last_sample / samples_per_pulse)
+        print('last_pulse =', last_pulse)
+
+        start_sample = round(last_pulse * samples_per_pulse)
+        print('start_sample =', start_sample)
+
+        half_sample = round((last_pulse + 0.5) * samples_per_pulse)
+        print('half_sample =', half_sample)
+
+        end_sample = round((last_pulse + 1) * samples_per_pulse)
+        print('end_sample =', end_sample)
+
+        msg = '1st pulse half:'
+        for i in range(half_sample - start_sample):
+            self.add_value(self.minvol)
+            msg = msg + ' ' + hex(self.minvol) + ' '
+        print(msg)
+
+        msg = '2nd pulse half:'
+        for i in range(end_sample - half_sample):
+            self.add_value(self.maxvol)
+            msg = msg + ' ' + hex(self.maxvol)
+        print(msg)
+
+        print('pulse length in samples:', end_sample - start_sample)
+
+        print('---')
+
+
 
 
 def main():
@@ -102,8 +135,9 @@ def main():
 #    print(__file__)
 #    print(globals())
     t = msxtape('file.wav')
-    t.add_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
-
+#    t.add_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
+    for i in range(100):
+        t.add_bit_0(1200.0)
     
 if __name__ == "__main__":
     main()
