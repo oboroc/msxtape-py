@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     [hopefully a] python program for generating wav file form msx cas file
+    Encoding as per: https://github.com/oboroc/msx-books/blob/master/ru/msx2-fb-1993-ru.md#10
 """
 
 import wave
@@ -49,6 +50,18 @@ class msxtape:
         wavf.writeframes(ba)
         wavf.close()
 
+    def add_value(self, value):
+        """
+        add_value function - add value to pcm data
+        """
+        if self.sample_width == 1:
+            self.pcm_data.append(value & 0xff)
+        elif self.sample_width == 2:
+            self.pcm_data.append(value & 0xff)
+            self.pcm_data.append((value >> 8) & 0xff)
+        else:
+            raise ValueError('Unsupported sample width')
+
 
     def add_tone(self, freq, dur):
         """
@@ -61,15 +74,8 @@ class msxtape:
                 value = self.minvol
             else:
                 value = self.maxvol
-
-            if self.sample_width == 1:
-                self.pcm_data.append(value & 0xff)
-            elif self.sample_width == 2:
-                self.pcm_data.append(value & 0xff)
-                self.pcm_data.append((value >> 8) & 0xff)
-            else:
-                raise ValueError('Unsupported sample width')
-
+            self.add_value(value)
+            
 
 def main():
     """
