@@ -75,7 +75,25 @@ class msxtape:
             else:
                 value = self.maxvol
             self.add_value(value)
-            
+
+
+    def add_bit_0(self, freq):
+        """
+        add_bit_0 function - encode a bit with value of 0
+        I'm not yet sure how to do it, so here is a free form thinking on the matter:
+        1 sample dutation in seconds is 1 second / sample_rate, i.e. 1/44100
+        1 pulse (iteration of wave) in seconds is 1 second / freq, i.e. 1/1200
+        1 pulse in samples = sample_rate / freq = 44100 / 1200 = 36.75
+        To output bit 0 we need to output half a pulse at minvol and half a pulse at maxvol.
+        We also want to somehow use the reminder for next iteration, so if we need to write
+        bit 0 three times, we'll have the first one represented at 37 samples (round up 36.75).
+        How many samples should the second bit 0 be? It starts at sample 38, right after first bit,
+        and it lasts until 2*36.75=73.5 ~ 74. 74-37=37. Second bit 0 is encoded with 36 samples.
+        Third bit 0 starts at sample 75 and goes on until 3*36.75=110.25 ~ 110. 110-74=36.
+        So all three bits are encoded by 37+37+36=110 samples.
+        """
+        previous_sample_no = len(self.pcm_data)
+
 
 def main():
     """
@@ -85,8 +103,7 @@ def main():
 #    print(globals())
     t = msxtape('file.wav')
     t.add_tone(1200.0, 1.0)   # frequency in hertz and duration in seconds
-    t.add_tone(2400.0, 1.0)
-    t.add_tone(1200.0, 1.0)
+
     
 if __name__ == "__main__":
     main()
