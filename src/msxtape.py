@@ -150,52 +150,54 @@ class msxtape:
             print("Can't open file", cas_name)
             return
 
-        cas_data = f.read(len(CAS_HEADER))
+        cas_data = f.read()
         if not cas_data:
             print("Can't read data from file", cas_name)
             return
 
+        idx = 0
+
         for i in range(len(CAS_HEADER)):
-            if cas_data[i] != CAS_HEADER[i]:
+            if cas_data[idx + i] != CAS_HEADER[i]:
                 print("File", cas_name, "doesn't have a valid CAS header")
                 return
+        idx = idx + len(CAS_HEADER)
 
-        cas_data = f.read(CODE_LEN)
         basic = ascii = binary = 0
-        for i in range(len(cas_data)):
-            if cas_data[i] == BASIC_CODE:
+        for i in range(CODE_LEN):
+            if cas_data[idx + i] == BASIC_CODE:
                 basic = basic + 1
-            if cas_data[i] == ASCII_CODE:
+            if cas_data[idx + i] == ASCII_CODE:
                 ascii = ascii + 1
-            if cas_data[i] == BINARY_CODE:
+            if cas_data[idx + i] == BINARY_CODE:
                 binary = binary + 1
 
         if basic == CODE_LEN:
-            print('Basic block')
+            print('BASIC block')
         elif ascii == CODE_LEN:
-            print('Ascii block')
+            print('ASCII block')
         elif binary == CODE_LEN:
             print('Binary block')
         else:
             s = 'Unexpected block header:'
-            for i in range(len(cas_data)):
-                s = s + ' ' + hex(cas_data[i])
+            for i in range(CODE_LEN):
+                s = s + ' ' + hex(cas_data[idx + i])
             print(s)
             return
+        idx = idx + CODE_LEN
 
         self.add_long_header(freq)
-        for i in range(len(cas_data)):
-            self.add_byte(freq, cas_data[i])
+        for i in range(CODE_LEN):
+            self.add_byte(freq, cas_data[idx + i])
 
         # 6 bytes file name
-        cas_data = f.read(FNAME_LEN)
         fname = ''
-        for i in range(len(cas_data)):
-            if cas_data[i] >= 32:
-                fname = fname + chr(cas_data[i])
+        for i in range(FNAME_LEN):
+            if cas_data[idx + i] >= 32:
+                fname = fname + chr(cas_data[idx + i])
         print('File name:', '"' + fname + '"')
-        for i in range(len(cas_data)):
-            self.add_byte(freq, cas_data[i])
+        for i in range(FNAME_LEN):
+            self.add_byte(freq, cas_data[idx + i])
         self.add_short_header(freq)
 
 
