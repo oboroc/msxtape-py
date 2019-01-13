@@ -199,6 +199,15 @@ class msxtape:
         for i in range(FNAME_LEN):
             self.add_byte(freq, cas_data[idx + i])
         self.add_short_header(freq)
+        idx = idx + FNAME_LEN
+
+        same = 1
+        # we need to somehow count the number of bytes same as current, up to 10 bytes
+        for i in range(1, min(10, len(cas_data) - idx)):
+            if cas_data[idx] != cas_data[idx + i]:
+                break
+            same = same + 1
+        print('same =', same)
 
 
 def main():
