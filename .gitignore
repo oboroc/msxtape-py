@@ -111,6 +111,8 @@ v15/
 *.VC.opendb
 UpgradeLog.htm
 
-# Ignore cas and wav files
+# Custom ignores
 *.cas
 *.wav
+*.exe
+*.bak
