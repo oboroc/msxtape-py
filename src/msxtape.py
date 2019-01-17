@@ -40,12 +40,12 @@ class wav_writer:
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
         ba = bytearray(self.pcm_data)
-        wavf = wave.open(f_name, 'w')
-        wavf.setnchannels(1)    # mono
-        wavf.setsampwidth(self.sample_width)
-        wavf.setframerate(self.sample_rate)
-        wavf.writeframes(ba)
-        wavf.close()
+        with wave.open(f_name, 'w') as f:
+            f.setnchannels(1)    # mono
+            f.setsampwidth(self.sample_width)
+            f.setframerate(self.sample_rate)
+            f.writeframes(ba)
+        del ba
 
 
     def add_value(self, value):
@@ -154,19 +154,12 @@ class cas_reader:
         BINARY_CODE = 0xd0
         CODE_LEN = 10
         FNAME_LEN = 6
-
-        f = open(cas_name, 'rb')
-        if not f:
-            print("Can't open file", cas_name)
-            return
-
-        cas_data = f.read()
+        with open(cas_name, 'rb') as f:
+            cas_data = f.read()
         if not cas_data:
             print("Can't read data from file", cas_name)
             return
-
         idx = 0
-
         for i in range(len(CAS_HEADER)):
             if cas_data[idx + i] != CAS_HEADER[i]:
                 print("File", cas_name, "doesn't have a valid CAS header")
