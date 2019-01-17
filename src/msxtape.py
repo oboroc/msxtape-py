@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-    [hopefully a] python program for generating wav file form msx cas file
-    Encoding as per: https://github.com/oboroc/msx-books/blob/master/ru/msx2-fb-1993-ru.md#10
+[hopefully a] python program for generating a wav file form a msx cas file
+Encoding as per: https://github.com/oboroc/msx-books/blob/master/ru/msx2-fb-1993-ru.md#10
 """
 
 import wave
 
-class msxtape:
-    def __init__(self, f_name, s_rate = 44100.0, s_width = 1):
+class wav_writer:
+    def __init__(self, s_rate = 44100.0, s_width = 1):
         """
         constructor - initializes constants and variables
         """
-        self.file_name = f_name
         self.sample_rate = s_rate
         self.sample_width = s_width
         self.pcm_data = []
@@ -25,25 +24,29 @@ class msxtape:
             self.maxvol = -self.minvol - 1
         else:
             raise ValueError('Unexpected sample width')
-        #MSX_Z80_FREQ = 3580000  # 3.58 MHz
-        #self.Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
-        #print('373 cycles in microseconds', 373 * self.Z80_CYCLE)
 
 
     def __del__(self):
         """
         destructor - dumps pcm data to a file
         """
+
+
+    def write(self, f_name):
+        """
+        write - creates a wav file from pcm_data
+        """
         # pad pcm data with one extra byte if we ended up with odd number of bytes
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
         ba = bytearray(self.pcm_data)
-        wavf = wave.open(self.file_name, 'w')
+        wavf = wave.open(f_name, 'w')
         wavf.setnchannels(1)    # mono
         wavf.setsampwidth(self.sample_width)
         wavf.setframerate(self.sample_rate)
         wavf.writeframes(ba)
         wavf.close()
+
 
     def add_value(self, value):
         """
@@ -134,9 +137,16 @@ class msxtape:
             self.add_short_header(freq)
 
 
-    def add_cas(self, freq, cas_name):
+    def add_cas(self, freq, cas):
         """
-        read_cas - 
+        add_cas - take object cas and add pcm data based on it
+        """
+
+
+class cas_reader:
+    def __init__(self, cas_name):
+        """
+        read_cas - read cas, parse it into a stream of tokens
         """
         CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
         BASIC_CODE = 0xd3
@@ -201,8 +211,8 @@ class msxtape:
         self.add_short_header(freq)
         idx = idx + FNAME_LEN
 
-        same = 1
         # we need to somehow count the number of bytes same as current, up to 10 bytes
+        same = 1
         for i in range(1, min(10, len(cas_data) - idx)):
             if cas_data[idx] != cas_data[idx + i]:
                 break
@@ -216,8 +226,14 @@ def main():
     """
 #    print(__file__)
 #    print(globals())
-    t = msxtape('file.wav')
-    t.add_cas(1200, '2.cas')
+     #MSX_Z80_FREQ = 3580000  # 3.58 MHz
+     #Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
+     #print('373 cycles in microseconds', 373 * Z80_CYCLE)
+    c = cas_reader('2.cas')
+    t = wav_writer()
+    t.add_cas(1200, c)
+    t.write('test.wav')
+
     
 if __name__ == "__main__":
     main()
