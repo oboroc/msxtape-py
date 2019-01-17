@@ -4,12 +4,12 @@
 Encoding as per: https://github.com/oboroc/msx-books/blob/master/ru/msx2-fb-1993-ru.md#10
 """
 
-import wave
+import sys, wave
 
 class wav_writer:
     def __init__(self, s_rate = 44100.0, s_width = 1):
         """
-        constructor - initializes constants and variables
+        initialize constants and variables
         """
         self.sample_rate = s_rate
         self.sample_width = s_width
@@ -26,15 +26,9 @@ class wav_writer:
             raise ValueError('Unexpected sample width')
 
 
-    def __del__(self):
-        """
-        destructor - dumps pcm data to a file
-        """
-
-
     def write(self, f_name):
         """
-        write - creates a wav file from pcm_data
+        create a wav file from pcm data
         """
         # pad pcm data with one extra byte if we ended up with odd number of bytes
         if (len(self.pcm_data) & 1) == 1:
@@ -50,7 +44,7 @@ class wav_writer:
 
     def add_value(self, value):
         """
-        add_value - add value to pcm data
+        add value to pcm data
         """
         if self.sample_width == 1:
             self.pcm_data.append(value & 0xff)
@@ -63,7 +57,7 @@ class wav_writer:
 
     def add_tone(self, freq, dur):
         """
-        add_tone - adds a tone with specified frequency and duration to pcm_data
+        add tone with specified frequency and duration to pcm data
         """
         period = self.sample_rate / freq
         for i in range(int(dur * self.sample_rate)):
@@ -77,7 +71,7 @@ class wav_writer:
 
     def add_bit_0(self, freq):
         """
-        add_bit_0 - encode a bit with value of 0
+        encode a bit with value of 0
         write one pulse at given frequency
         """
         samples_per_pulse = self.sample_rate / freq
@@ -94,7 +88,7 @@ class wav_writer:
 
     def add_bit_1(self, freq):
         """
-        add_bit_1 - encode a bit with value of 1
+        encode a bit with value of 1
         write two pusles at twice the given frequency
         """
         self.add_bit_0(freq * 2)
@@ -103,7 +97,7 @@ class wav_writer:
 
     def add_byte(self, freq, a_byte):
         """
-        add_byte function - encode a byte
+        encode a byte
         write start bit 0, 8 byte bits and two stop bits 1
         """
         self.add_bit_0(freq)    # start bit
@@ -119,7 +113,7 @@ class wav_writer:
 
     def add_short_header(self, freq):
         """
-        add_short_header function - encode ~1.7 seconds of freq * 2 tone
+        encode ~1.7 seconds of freq * 2 tone
         for tape speed of 1200 bod, we need 4000 pulses
         for tape speed of 2400 bod, we need 8000 pulses
         """
@@ -130,7 +124,7 @@ class wav_writer:
 
     def add_long_header(self, freq):
         """
-        add_long_header - encode ~6.7 seconds of freq * 2 tone
+        encode ~6.7 seconds of freq * 2 tone
         long header is 4x times the duration of short header
         """
         for i in range(4):
@@ -139,93 +133,164 @@ class wav_writer:
 
     def add_cas(self, freq, cas):
         """
-        add_cas - take object cas and add pcm data based on it
+        take object cas and add pcm data based on it
         """
 
+CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
 
 class cas_reader:
     def __init__(self, cas_name):
         """
-        read_cas - read cas, parse it into a stream of tokens
+        read and parse a cas file
         """
-        CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
-        BASIC_CODE = 0xd3
-        ASCII_CODE = 0xea
-        BINARY_CODE = 0xd0
-        CODE_LEN = 10
-        FNAME_LEN = 6
+
+        def reps(lst, idx, maxrep):
+            """
+            count the number of same values in lst, repeated after the value at index idx
+            stop counting after maxrep
+            """
+            rep = 1
+            for i in range(1, min(maxrep, len(lst) - idx)):
+                if lst[idx] != lst[idx + i]:
+                    break
+                rep = rep + 1
+            return rep
+
+        def is_cas_header(lst, idx):
+            """
+            check if we have cas header starting at idx position
+            """
+            for i in range(len(CAS_HEADER)):
+                if cas_data[idx + i] != CAS_HEADER[i]:
+                    return False
+                    break
+            return True
+
         with open(cas_name, 'rb') as f:
             cas_data = f.read()
         if not cas_data:
             print("Can't read data from file", cas_name)
             return
         idx = 0
-        for i in range(len(CAS_HEADER)):
-            if cas_data[idx + i] != CAS_HEADER[i]:
-                print("File", cas_name, "doesn't have a valid CAS header")
-                return
-        idx = idx + len(CAS_HEADER)
-
-        basic = ascii = binary = 0
-        for i in range(CODE_LEN):
-            if cas_data[idx + i] == BASIC_CODE:
-                basic = basic + 1
-            if cas_data[idx + i] == ASCII_CODE:
-                ascii = ascii + 1
-            if cas_data[idx + i] == BINARY_CODE:
-                binary = binary + 1
-
-        if basic == CODE_LEN:
-            print('BASIC block')
-        elif ascii == CODE_LEN:
-            print('ASCII block')
-        elif binary == CODE_LEN:
-            print('Binary block')
-        else:
-            s = 'Unexpected block header:'
-            for i in range(CODE_LEN):
-                s = s + ' ' + hex(cas_data[idx + i])
-            print(s)
+        if not is_cas_header(cas_data, idx):
+            print("File", cas_name, "doesn't have a valid CAS header")
             return
-        idx = idx + CODE_LEN
+        idx = idx + len(CAS_HEADER)
+        # iterate through blocks
+        self.blocks = []
+        block_type = -1 # invalid value
+        BASIC = 0xd3
+        ASCII = 0xea
+        BINARY = 0xd0
+        BLOCK_LEN = 10
+        while idx < len(cas_data):
+            # 10 byte block header
+            if reps(cas_data, idx, BLOCK_LEN) < BLOCK_LEN:
+                s = 'Unexpected block header:'
+                for i in range(min(BLOCK_LEN, len(cas_data) - idx)):
+                    s = s + ' ' + hex(cas_data[idx + i])
+                    s = s + ' at ' + hex(idx)
+                print(s)
+                return
+            block_type = cas_data[idx]
+            idx = idx + BLOCK_LEN
+            # 6 bytes file name
+            FNAME_LEN = 6
+            block_fname = ''
+            for i in range(FNAME_LEN):
+                block_fname = block_fname + chr(cas_data[idx + i])
+            idx = idx + FNAME_LEN
+            block_data = []
+            if block_type == BASIC:
+                BASIC_END_TOK = 7
+                BASIC_END_LEN = 7
+                while idx < len(cas_data):
+                    if cas_data[idx] == BASIC_END_TOK and reps(cas_data, idx, BASIC_END_LEN) >= BASIC_END_LEN:
+                        idx = idx + BASIC_END_LEN
+                        break
+                    block_data.append(cas_data[idx])
+                    idx = idx + 1
+            elif block_type == ASCII:
+                ASCII_SEQ_LEN = 256
+                EOF = 0x1a
+                while idx < len(cas_data):
+                    if len(cas_data) - idx < ASCII_SEQ_LEN:
+                        print('expected', ASCII_SEQ_LEN, 'bytes block in ASCII block', block_fname,
+                              '; there is only', len(cas_data) - idx, 'bytes of data left')
+                        return
+                    found_eof = False
+                    for i in range(ASCII_SEQ_LEN):
+                        block_data.append(cas_data[idx + i])
+                        if cas_data[idx + i] == EOF:
+                            found_eof = True
+                    idx = idx + ASCII_SEQ_LEN
+                    if found_eof:
+                        break
+            elif block_type == BINARY:
+                if not is_cas_header(cas_data, idx):
+                    print("block", cas_name, "doesn't have a valid CAS header")
+                    return
+                idx = idx + len(CAS_HEADER)
+                begin_address = cas_data[idx] + cas_data[idx + 1] * 256
+                print('begin_address =', hex(begin_address))
+                end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
+                print('end_address =', hex(end_address))
+                run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
+                print('run_address =', hex(run_address))
+                code_len = end_address - begin_address
+                print('code_len =', code_len)
+                idx = idx + 6
+                if idx + code_len > len(cas_data):
+                    print('unexpected end in binary block data')
+                    return
 
-        self.add_long_header(freq)
-        for i in range(CODE_LEN):
-            self.add_byte(freq, cas_data[idx + i])
+                i = 0
+                while idx + i < len(cas_data):
+                    block_data.append(cas_data[idx + i])
+                    i = i + 1
+                    if i == code_len:
+                        break
+                idx = idx + i
+            else:
+                return
+            # custom block?
+            #block_data.append(cas_data[idx])
+#                idx = idx + 1
 
-        # 6 bytes file name
-        fname = ''
-        for i in range(FNAME_LEN):
-            if cas_data[idx + i] >= 32:
-                fname = fname + chr(cas_data[idx + i])
-        print('File name:', '"' + fname + '"')
-        for i in range(FNAME_LEN):
-            self.add_byte(freq, cas_data[idx + i])
-        self.add_short_header(freq)
-        idx = idx + FNAME_LEN
+            self.blocks.append([block_type, block_fname, block_data])
+            s = ''
+            if block_type == BASIC:
+                s = 'basic  '
+            elif block_type == ASCII:
+                s = 'ascii  '
+            elif block_type == BINARY:
+                s = 'binary '
+            else:
+                s = 'custom ' + hex(block_type)
+            if block_type in [BASIC, ASCII, BINARY]:
+                s = s + block_fname
+            s = s + ' ' + str(len(block_data))
+            print(s)
 
-        # we need to somehow count the number of bytes same as current, up to 10 bytes
-        same = 1
-        for i in range(1, min(10, len(cas_data) - idx)):
-            if cas_data[idx] != cas_data[idx + i]:
-                break
-            same = same + 1
-        print('same =', same)
 
 
 def main():
     """
-    main function - for now just make some beeps
+    for now just make some beeps
     """
 #    print(__file__)
 #    print(globals())
      #MSX_Z80_FREQ = 3580000  # 3.58 MHz
      #Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
      #print('373 cycles in microseconds', 373 * Z80_CYCLE)
-    c = cas_reader('2.cas')
-    t = wav_writer()
-    t.add_cas(1200, c)
-    t.write('test.wav')
+
+    for i in range(1, len(sys.argv)):
+        print('cas file:', sys.argv[i])
+        c = cas_reader(sys.argv[i])
+        print('---')
+#    t = wav_writer()
+#    t.add_cas(1200, c)
+#    t.write('test.wav')
 
     
 if __name__ == "__main__":
