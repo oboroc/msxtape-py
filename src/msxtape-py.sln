@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2047
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "msxtape", "msxtape.pyproj", "{8275B2EC-685B-40CE-831C-66F22AED01A6}"
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "msxtape-py", "msxtape-py.pyproj", "{8275B2EC-685B-40CE-831C-66F22AED01A6}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{73D07C9E-B7CE-490B-B4FF-CCA3A592D7DE}"
 	ProjectSection(SolutionItems) = preProject
