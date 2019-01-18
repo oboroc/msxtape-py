@@ -182,18 +182,18 @@ class cas_reader:
         BASIC = 0xd3
         ASCII = 0xea
         BINARY = 0xd0
-        BLOCK_LEN = 10
+        BLOCK_HEADER_LEN = 10
         while idx < len(cas_data):
             # 10 byte block header
-            if reps(cas_data, idx, BLOCK_LEN) < BLOCK_LEN:
+            if reps(cas_data, idx, BLOCK_HEADER_LEN) < BLOCK_HEADER_LEN:
                 s = 'Unexpected block header:'
-                for i in range(min(BLOCK_LEN, len(cas_data) - idx)):
+                for i in range(min(BLOCK_HEADER_LEN, len(cas_data) - idx)):
                     s = s + ' ' + hex(cas_data[idx + i])
-                    s = s + ' at ' + hex(idx)
+                s = s + ' at ' + hex(idx) + ' (' + str(idx) + ')'
                 print(s)
                 return
             block_type = cas_data[idx]
-            idx = idx + BLOCK_LEN
+            idx = idx + BLOCK_HEADER_LEN
             # 6 bytes file name
             FNAME_LEN = 6
             block_fname = ''
@@ -201,6 +201,7 @@ class cas_reader:
                 block_fname = block_fname + chr(cas_data[idx + i])
             idx = idx + FNAME_LEN
             block_data = []
+            start_address = end_address = run_address = -1
             if block_type == BASIC:
                 BASIC_END_TOK = 7
                 BASIC_END_LEN = 7
@@ -231,34 +232,28 @@ class cas_reader:
                     print("block", cas_name, "doesn't have a valid CAS header")
                     return
                 idx = idx + len(CAS_HEADER)
-                begin_address = cas_data[idx] + cas_data[idx + 1] * 256
-                print('begin_address =', hex(begin_address))
+                start_address = cas_data[idx] + cas_data[idx + 1] * 256
                 end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
-                print('end_address =', hex(end_address))
                 run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
-                print('run_address =', hex(run_address))
-                code_len = end_address - begin_address
-                print('code_len =', code_len)
+                code_len = end_address - start_address + 1
                 idx = idx + 6
                 if idx + code_len > len(cas_data):
                     print('unexpected end in binary block data')
                     return
-
-                i = 0
-                while idx + i < len(cas_data):
-                    block_data.append(cas_data[idx + i])
-                    i = i + 1
-                    if i == code_len:
+                while idx < len(cas_data):
+                    if is_cas_header(cas_data, idx):
                         break
-                idx = idx + i
+                    block_data.append(cas_data[idx])
+                    idx = idx + 1
             else:
                 return
             # custom block?
             #block_data.append(cas_data[idx])
 #                idx = idx + 1
 
-            self.blocks.append([block_type, block_fname, block_data])
+            self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
             s = ''
+
             if block_type == BASIC:
                 s = 'basic  '
             elif block_type == ASCII:
@@ -271,7 +266,11 @@ class cas_reader:
                 s = s + block_fname
             s = s + ' ' + str(len(block_data))
             print(s)
-
+            if block_type == BINARY:
+                print('code_len     ', code_len)
+                print('start_address', hex(start_address))
+                print('end_address  ', hex(end_address))
+                print('run_address  ', hex(run_address))
 
 
 def main():
