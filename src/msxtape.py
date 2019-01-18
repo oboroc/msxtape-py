@@ -245,15 +245,8 @@ class cas_reader:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-            else:
-                return
-            # custom block?
-            #block_data.append(cas_data[idx])
-#                idx = idx + 1
-
             self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
             s = ''
-
             if block_type == BASIC:
                 s = 'basic  '
             elif block_type == ASCII:
