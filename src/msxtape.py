@@ -172,34 +172,43 @@ class cas_reader:
             print("Can't read data from file", cas_name)
             return
         idx = 0
-        if not is_cas_header(cas_data, idx):
-            print("File", cas_name, "doesn't have a valid CAS header")
-            return
-        idx = idx + len(CAS_HEADER)
         # iterate through blocks
         self.blocks = []
         block_type = -1 # invalid value
         BASIC = 0xd3
         ASCII = 0xea
         BINARY = 0xd0
+ #       CUSTOM = 0x100
         BLOCK_HEADER_LEN = 10
         while idx < len(cas_data):
-            # 10 byte block header
-            if reps(cas_data, idx, BLOCK_HEADER_LEN) < BLOCK_HEADER_LEN:
+            if not is_cas_header(cas_data, idx):
+                print('no valid cas header at', idx, hex(idx))
+                return
+            idx = idx + len(CAS_HEADER)
+            # is it a 10 byte block header?
+            if reps(cas_data, idx, BLOCK_HEADER_LEN) >= BLOCK_HEADER_LEN:
+                block_type = cas_data[idx]
+                idx = idx + BLOCK_HEADER_LEN
+#            elif is_cas_header(cas_data, idx):  # do we need this? I think parser evolved
+#                block_type = CUSTOM
+#                idx = idx + len(CAS_HEADER)
+            else:
                 s = 'Unexpected block header:'
                 for i in range(min(BLOCK_HEADER_LEN, len(cas_data) - idx)):
                     s = s + ' ' + hex(cas_data[idx + i])
                 s = s + ' at ' + hex(idx) + ' (' + str(idx) + ')'
                 print(s)
                 return
-            block_type = cas_data[idx]
-            idx = idx + BLOCK_HEADER_LEN
             # 6 bytes file name
             FNAME_LEN = 6
             block_fname = ''
             for i in range(FNAME_LEN):
                 block_fname = block_fname + chr(cas_data[idx + i])
             idx = idx + FNAME_LEN
+            if not is_cas_header(cas_data, idx):
+                print('no cas header after cas file name at', idx)
+                return
+            idx = idx + len(CAS_HEADER)
             block_data = []
             start_address = end_address = run_address = -1
             if block_type == BASIC:
@@ -216,7 +225,7 @@ class cas_reader:
                 EOF = 0x1a
                 while idx < len(cas_data):
                     if len(cas_data) - idx < ASCII_SEQ_LEN:
-                        print('expected', ASCII_SEQ_LEN, 'bytes block in ASCII block', block_fname,
+                        print('expected', ASCII_SEQ_LEN, 'bytes sequence in ASCII block', block_fname,
                               '; there is only', len(cas_data) - idx, 'bytes of data left')
                         return
                     found_eof = False
@@ -227,6 +236,15 @@ class cas_reader:
                     idx = idx + ASCII_SEQ_LEN
                     if found_eof:
                         break
+                    if not is_cas_header(cas_data, idx):
+                        print('no cas header for next ASCII sequence at', idx)
+                        return
+                    idx = idx + len(CAS_HEADER)
+
+                print('>>> end of ascii block at', idx, hex(idx))
+                if not found_eof:
+                    print('>>> no eof found in ascii block at', idx)
+                    return
             elif block_type == BINARY:
                 if not is_cas_header(cas_data, idx):
                     print("block", cas_name, "doesn't have a valid CAS header")
@@ -245,25 +263,13 @@ class cas_reader:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
+            elif block_type == CUSTOM:
+                while idx < len(cas_data):
+                    if is_cas_header(cas_data, idx):
+                        break
+                    block_data.append(cas_data[idx])
+                    idx = idx + 1
             self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
-            s = ''
-            if block_type == BASIC:
-                s = 'basic  '
-            elif block_type == ASCII:
-                s = 'ascii  '
-            elif block_type == BINARY:
-                s = 'binary '
-            else:
-                s = 'custom ' + hex(block_type)
-            if block_type in [BASIC, ASCII, BINARY]:
-                s = s + block_fname
-            s = s + ' ' + str(len(block_data))
-            print(s)
-            if block_type == BINARY:
-                print('code_len     ', code_len)
-                print('start_address', hex(start_address))
-                print('end_address  ', hex(end_address))
-                print('run_address  ', hex(run_address))
 
 
 def main():
