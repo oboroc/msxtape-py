@@ -196,19 +196,20 @@ class cas_reader:
             # is it a 10 byte block header?
             if reps(cas_data, idx, BLOCK_HEADER_LEN) >= BLOCK_HEADER_LEN:
                 block_type = cas_data[idx]
-                if block_type == BASIC:
-                    s = 'BASIC'
-                elif block_type == ASCII:
-                    s = 'ASCII'
-                elif block_type == BINARY:
-                    s = 'BINARY'
-                print(s, 'block start at', dechex(idx))
-
                 idx = idx + BLOCK_HEADER_LEN
             else:
                 block_type = CUSTOM
+            if block_type == BASIC:
+                s = 'BASIC'
+            elif block_type == ASCII:
+                s = 'ASCII'
+            elif block_type == BINARY:
+                s = 'BINARY'
+            else:
+                s = 'CUSTOM'
+            print(s, 'block start at', dechex(idx))
+            # 6 bytes file name and cas header
             if block_type in [BASIC, ASCII, BINARY]:
-                # 6 bytes file name
                 FNAME_LEN = 6
                 block_fname = ''
                 for i in range(FNAME_LEN):
@@ -273,8 +274,8 @@ class cas_reader:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
+                print('block length:', dechex(idx - bin_start))
                 print('BINARY block end at', dechex(idx))
-                print('block length:', idx - bin_start)
             elif block_type == CUSTOM:
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
