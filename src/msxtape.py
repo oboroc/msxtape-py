@@ -167,6 +167,13 @@ class cas_reader:
                     break
             return True
 
+        def dechex(n):
+            """
+            convert integer into string with it's value as a decimal,
+            followed with hex in brakets
+            """
+            return str(n) + ' (' + hex(n) + ')'
+
         with open(cas_name, 'rb') as f:
             cas_data = f.read()
         if not cas_data:
@@ -179,23 +186,33 @@ class cas_reader:
         BASIC = 0xd3
         ASCII = 0xea
         BINARY = 0xd0
+        CUSTOM = -1
         BLOCK_HEADER_LEN = 10
         while idx < len(cas_data):
             if not is_cas_header(cas_data, idx):
-                print('no valid cas header at', idx, hex(idx))
+                print('no valid cas header at', dechex(idx))
                 return
             idx = idx + CAS_HEADER_LEN
             # is it a 10 byte block header?
             if reps(cas_data, idx, BLOCK_HEADER_LEN) >= BLOCK_HEADER_LEN:
                 block_type = cas_data[idx]
+                if block_type == BASIC:
+                    s = 'BASIC'
+                elif block_type == ASCII:
+                    s = 'ASCII'
+                elif block_type == BINARY:
+                    s = 'BINARY'
+                print(s, 'block start at', dechex(idx))
+
                 idx = idx + BLOCK_HEADER_LEN
             else:
+                block_type = CUSTOM
                 s = 'Unexpected block header:'
                 for i in range(min(BLOCK_HEADER_LEN, len(cas_data) - idx)):
                     s = s + ' ' + hex(cas_data[idx + i])
-                s = s + ' at ' + hex(idx) + ' (' + str(idx) + ')'
+                s = s + ' at ' + dechex(idx)
                 print(s)
-                return
+#                return
             # 6 bytes file name
             FNAME_LEN = 6
             block_fname = ''
@@ -237,21 +254,21 @@ class cas_reader:
                         print('no cas header for next ASCII sequence at', idx)
                         return
                     idx = idx + CAS_HEADER_LEN
-
-                print('>>> end of ascii block at', idx, hex(idx))
+                print('ASCII block end at', dechex(idx))
                 if not found_eof:
                     print('>>> no eof found in ascii block at', idx)
                     return
             elif block_type == BINARY:
-                if not is_cas_header(cas_data, idx):
-                    print("block", cas_name, "doesn't have a valid CAS header")
-                    return
-                idx = idx + CAS_HEADER_LEN
                 start_address = cas_data[idx] + cas_data[idx + 1] * 256
+                print('start address:', dechex(start_address))
                 end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
+                print('end address:  ', dechex(end_address))
                 run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
+                print('run address:  ', dechex(run_address))
                 code_len = end_address - start_address + 1
+                print('code length: ', dechex(code_len))
                 idx = idx + 6
+                bin_start = idx
                 if idx + code_len > len(cas_data):
                     print('unexpected end in binary block data')
                     return
@@ -260,12 +277,17 @@ class cas_reader:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
+                print('BINARY block end at', dechex(idx))
+                print('block length:', idx - bin_start)
             elif block_type == CUSTOM:
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
+            else:
+                print('this is a bug, this code should never be reached')
+                return
             self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
 
 
