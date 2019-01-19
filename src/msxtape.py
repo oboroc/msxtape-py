@@ -136,9 +136,9 @@ class wav_writer:
         take object cas and add pcm data based on it
         """
 
-CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
 
 class cas_reader:
+    CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
     def __init__(self, cas_name):
         """
         read and parse a cas file
@@ -160,8 +160,8 @@ class cas_reader:
             """
             check if we have cas header starting at idx position
             """
-            for i in range(len(CAS_HEADER)):
-                if cas_data[idx + i] != CAS_HEADER[i]:
+            for i in range(len(self.CAS_HEADER)):
+                if cas_data[idx + i] != self.CAS_HEADER[i]:
                     return False
                     break
             return True
@@ -178,20 +178,16 @@ class cas_reader:
         BASIC = 0xd3
         ASCII = 0xea
         BINARY = 0xd0
- #       CUSTOM = 0x100
         BLOCK_HEADER_LEN = 10
         while idx < len(cas_data):
             if not is_cas_header(cas_data, idx):
                 print('no valid cas header at', idx, hex(idx))
                 return
-            idx = idx + len(CAS_HEADER)
+            idx = idx + len(self.CAS_HEADER)
             # is it a 10 byte block header?
             if reps(cas_data, idx, BLOCK_HEADER_LEN) >= BLOCK_HEADER_LEN:
                 block_type = cas_data[idx]
                 idx = idx + BLOCK_HEADER_LEN
-#            elif is_cas_header(cas_data, idx):  # do we need this? I think parser evolved
-#                block_type = CUSTOM
-#                idx = idx + len(CAS_HEADER)
             else:
                 s = 'Unexpected block header:'
                 for i in range(min(BLOCK_HEADER_LEN, len(cas_data) - idx)):
@@ -208,7 +204,7 @@ class cas_reader:
             if not is_cas_header(cas_data, idx):
                 print('no cas header after cas file name at', idx)
                 return
-            idx = idx + len(CAS_HEADER)
+            idx = idx + len(self.CAS_HEADER)
             block_data = []
             start_address = end_address = run_address = -1
             if block_type == BASIC:
@@ -239,7 +235,7 @@ class cas_reader:
                     if not is_cas_header(cas_data, idx):
                         print('no cas header for next ASCII sequence at', idx)
                         return
-                    idx = idx + len(CAS_HEADER)
+                    idx = idx + len(self.CAS_HEADER)
 
                 print('>>> end of ascii block at', idx, hex(idx))
                 if not found_eof:
@@ -249,7 +245,7 @@ class cas_reader:
                 if not is_cas_header(cas_data, idx):
                     print("block", cas_name, "doesn't have a valid CAS header")
                     return
-                idx = idx + len(CAS_HEADER)
+                idx = idx + len(self.CAS_HEADER)
                 start_address = cas_data[idx] + cas_data[idx + 1] * 256
                 end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
                 run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
