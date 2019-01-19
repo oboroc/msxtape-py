@@ -207,22 +207,17 @@ class cas_reader:
                 idx = idx + BLOCK_HEADER_LEN
             else:
                 block_type = CUSTOM
-                s = 'Unexpected block header:'
-                for i in range(min(BLOCK_HEADER_LEN, len(cas_data) - idx)):
-                    s = s + ' ' + hex(cas_data[idx + i])
-                s = s + ' at ' + dechex(idx)
-                print(s)
-#                return
-            # 6 bytes file name
-            FNAME_LEN = 6
-            block_fname = ''
-            for i in range(FNAME_LEN):
-                block_fname = block_fname + chr(cas_data[idx + i])
-            idx = idx + FNAME_LEN
-            if not is_cas_header(cas_data, idx):
-                print('no cas header after cas file name at', idx)
-                return
-            idx = idx + CAS_HEADER_LEN
+            if block_type in [BASIC, ASCII, BINARY]:
+                # 6 bytes file name
+                FNAME_LEN = 6
+                block_fname = ''
+                for i in range(FNAME_LEN):
+                    block_fname = block_fname + chr(cas_data[idx + i])
+                idx = idx + FNAME_LEN
+                if not is_cas_header(cas_data, idx):
+                    print('no cas header after cas file name at', idx)
+                    return
+                idx = idx + CAS_HEADER_LEN
             block_data = []
             start_address = end_address = run_address = -1
             if block_type == BASIC:
@@ -234,6 +229,7 @@ class cas_reader:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
+                print('BASIC block end at', dechex(idx))
             elif block_type == ASCII:
                 ASCII_SEQ_LEN = 256
                 EOF = 0x1a
@@ -285,6 +281,7 @@ class cas_reader:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
+                print('CUSTOM block end at', dechex(idx))
             else:
                 print('this is a bug, this code should never be reached')
                 return
