@@ -101,7 +101,7 @@ class wav_writer:
         write start bit 0, 8 byte bits and two stop bits 1
         """
         self.add_bit_0(freq)    # start bit
-        for i in range(8):      # 8 bits in given byte
+        for i in range(8):      # 8 bits of data
             a_bit = (a_byte >> i) & 1
             if a_bit == 0:
                 self.add_bit_0(freq)
@@ -137,13 +137,20 @@ class wav_writer:
         """
 
 
-class cas_reader:
-    def __init__(self, cas_name):
+CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
+CAS_HEADER_LEN = len(CAS_HEADER)
+BASIC = 0xd3
+ASCII = 0xea
+BINARY = 0xd0
+CUSTOM = -1
+BLOCK_HEADER_LEN = 10
+
+
+class cas:
+    def read(self, cas_name):
         """
         read and parse a cas file
         """
-        CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
-        CAS_HEADER_LEN = len(CAS_HEADER)
 
         def reps(lst, idx, maxrep):
             """
@@ -177,20 +184,14 @@ class cas_reader:
         with open(cas_name, 'rb') as f:
             cas_data = f.read()
         if not cas_data:
-            print("Can't read data from file", cas_name)
+            print("Error: can't read data from file", cas_name)
             return
         # iterate through blocks
         idx = 0
         self.blocks = []
-        block_type = -1 # invalid value
-        BASIC = 0xd3
-        ASCII = 0xea
-        BINARY = 0xd0
-        CUSTOM = -1
-        BLOCK_HEADER_LEN = 10
         while idx < len(cas_data):
             if not is_cas_header(cas_data, idx):
-                print('no valid cas header at', dechex(idx))
+                print('Error: no valid cas header at', dechex(idx))
                 return
             idx = idx + CAS_HEADER_LEN
             # is it a 10 byte block header?
@@ -209,14 +210,14 @@ class cas_reader:
                 s = 'CUSTOM'
             print(s, 'block start at', dechex(idx))
             # 6 bytes file name and cas header
+            block_fname = ''
             if block_type in [BASIC, ASCII, BINARY]:
                 FNAME_LEN = 6
-                block_fname = ''
                 for i in range(FNAME_LEN):
                     block_fname = block_fname + chr(cas_data[idx + i])
                 idx = idx + FNAME_LEN
                 if not is_cas_header(cas_data, idx):
-                    print('no cas header after cas file name at', idx)
+                    print('Error: no cas header after cas file name at', dechex(idx))
                     return
                 idx = idx + CAS_HEADER_LEN
             block_data = []
@@ -236,7 +237,7 @@ class cas_reader:
                 EOF = 0x1a
                 while idx < len(cas_data):
                     if len(cas_data) - idx < ASCII_SEQ_LEN:
-                        print('expected', ASCII_SEQ_LEN, 'bytes sequence in ASCII block', block_fname,
+                        print('Error: expected', ASCII_SEQ_LEN, 'bytes sequence in ASCII block', block_fname,
                               '; there is only', len(cas_data) - idx, 'bytes of data left')
                         return
                     found_eof = False
@@ -248,12 +249,12 @@ class cas_reader:
                     if found_eof:
                         break
                     if not is_cas_header(cas_data, idx):
-                        print('no cas header for next ASCII sequence at', idx)
+                        print('Error: no cas header for next ASCII sequence at', dechex(idx))
                         return
                     idx = idx + CAS_HEADER_LEN
                 print('ASCII block end at', dechex(idx))
                 if not found_eof:
-                    print('>>> no eof found in ascii block at', idx)
+                    print('Error: no eof found in ascii block at', dechex(idx))
                     return
             elif block_type == BINARY:
                 start_address = cas_data[idx] + cas_data[idx + 1] * 256
@@ -267,7 +268,7 @@ class cas_reader:
                 idx = idx + 6
                 bin_start = idx
                 if idx + code_len > len(cas_data):
-                    print('unexpected end in binary block data')
+                    print('Error: unexpected end in binary block data')
                     return
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
@@ -284,28 +285,62 @@ class cas_reader:
                     idx = idx + 1
                 print('CUSTOM block end at', dechex(idx))
             else:
-                print('this is a bug, this code should never be reached')
+                print('Error: this is a bug, this code should never be reached')
                 return
             self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
+
+
+    def write(self, cas_name):
+        """
+        create a cas file from cas_data
+        """
+        if self.blocks == []:
+            print('Error: no cas data, nothing to write to', cas_name)
+            return
+        f = open(cas_name, 'wb')
+        if not f:
+            print("Error: can't create file", cas_name)
+            return
+        for block in self.blocks:
+            block_type = block[0]
+            block_fname = block[1]
+            block_data = block[2]
+            start_address = block[3]
+            end_address = block[4]
+            run_address = block[5]
+            if block_type == BASIC:
+                s = 'BASIC'
+            elif block_type == ASCII:
+                s = 'ASCII'
+            elif block_type == BINARY:
+                s = 'BINARY'
+            elif block_type == CUSTOM:
+                s = 'CUSTOM'
+            else:
+                print('Error: invalid block type', block_type)
+                return
+            print('Block type:', s)
+
+
+
+
 
 
 def main():
     """
     for now just make some beeps
     """
-#    print(__file__)
-#    print(globals())
-     #MSX_Z80_FREQ = 3580000  # 3.58 MHz
-     #Z80_CYCLE = 1000000 / MSX_Z80_FREQ # 1 cpu cycle duration in microseconds
-     #print('373 cycles in microseconds', 373 * Z80_CYCLE)
-
     for i in range(1, len(sys.argv)):
         print('cas file:', sys.argv[i])
-        c = cas_reader(sys.argv[i])
+        c = cas()
+        c.read(sys.argv[i])
+        c.write('---' + sys.argv[i])
         print('---')
-#    t = wav_writer()
-#    t.add_cas(1200, c)
-#    t.write('test.wav')
+#        t = wav_writer()
+#        t.add_cas(1200, c)
+#        t.write('test.wav')
+#        del t
+        del c
 
     
 if __name__ == "__main__":
