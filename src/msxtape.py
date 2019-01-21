@@ -33,12 +33,11 @@ class wav_writer:
         # pad pcm data with one extra byte if we ended up with odd number of bytes
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
-        ba = bytearray(self.pcm_data)
         with wave.open(f_name, 'w') as f:
             f.setnchannels(1)    # mono
             f.setsampwidth(self.sample_width)
             f.setframerate(self.sample_rate)
-            f.writeframes(ba)
+            f.writeframes(bytearray(self.pcm_data))
         del ba
 
 
@@ -144,6 +143,7 @@ ASCII = 0xea
 BINARY = 0xd0
 CUSTOM = -1
 BLOCK_HEADER_LEN = 10
+FNAME_LEN = 6
 
 
 class cas:
@@ -208,11 +208,10 @@ class cas:
                 s = 'BINARY'
             else:
                 s = 'CUSTOM'
-            print(s, 'block start at', dechex(idx))
+            #print(s, 'block start at', dechex(idx))
             # 6 bytes file name and cas header
             block_fname = ''
             if block_type in [BASIC, ASCII, BINARY]:
-                FNAME_LEN = 6
                 for i in range(FNAME_LEN):
                     block_fname = block_fname + chr(cas_data[idx + i])
                 idx = idx + FNAME_LEN
@@ -231,7 +230,7 @@ class cas:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-                print('BASIC block end at', dechex(idx))
+                #print('BASIC block end at', dechex(idx))
             elif block_type == ASCII:
                 ASCII_SEQ_LEN = 256
                 EOF = 0x1a
@@ -249,22 +248,22 @@ class cas:
                     if found_eof:
                         break
                     if not is_cas_header(cas_data, idx):
-                        print('Error: no cas header for next ASCII sequence at', dechex(idx))
+                        #print('Error: no cas header for next ASCII sequence at', dechex(idx))
                         return
                     idx = idx + CAS_HEADER_LEN
-                print('ASCII block end at', dechex(idx))
+                #print('ASCII block end at', dechex(idx))
                 if not found_eof:
                     print('Error: no eof found in ascii block at', dechex(idx))
                     return
             elif block_type == BINARY:
                 start_address = cas_data[idx] + cas_data[idx + 1] * 256
-                print('start address:', dechex(start_address))
+                #print('start address:', dechex(start_address))
                 end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
-                print('end address:  ', dechex(end_address))
+                #print('end address:  ', dechex(end_address))
                 run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
-                print('run address:  ', dechex(run_address))
+                #print('run address:  ', dechex(run_address))
                 code_len = end_address - start_address + 1
-                print('code length: ', dechex(code_len))
+                #print('code length: ', dechex(code_len))
                 idx = idx + 6
                 bin_start = idx
                 if idx + code_len > len(cas_data):
@@ -275,15 +274,15 @@ class cas:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-                print('block length:', dechex(idx - bin_start))
-                print('BINARY block end at', dechex(idx))
+                #print('block length:', dechex(idx - bin_start))
+                #print('BINARY block end at', dechex(idx))
             elif block_type == CUSTOM:
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-                print('CUSTOM block end at', dechex(idx))
+                #print('CUSTOM block end at', dechex(idx))
             else:
                 print('Error: this is a bug, this code should never be reached')
                 return
@@ -301,6 +300,7 @@ class cas:
         if not f:
             print("Error: can't create file", cas_name)
             return
+        print('create cas file:', cas_name)
         for block in self.blocks:
             block_type = block[0]
             block_fname = block[1]
@@ -308,18 +308,39 @@ class cas:
             start_address = block[3]
             end_address = block[4]
             run_address = block[5]
+
+            print('block_type:', hex(block_type))
+            print('block_fname:', block_fname)
+            print('len(block_data):', len(block_data))
+            print('start_address:', hex(start_address))
+            print('end_address:', hex(end_address))
+            print('run_address:', hex(run_address))
+
+            f.write(bytearray(CAS_HEADER))
+            if block_type in [BASIC, ASCII, BINARY]:
+                for i in range(BLOCK_HEADER_LEN):
+                    f.write(bytes(block_type))
+                fname_bytes = []
+                for i in range(len(block_fname)):
+                    fname_bytes.append(int(block_fname[i]))
+                for i in range(len(block_fname), FNAME_LEN):
+                    fname_bytes.append(0x20)    # pad with spaces
             if block_type == BASIC:
-                s = 'BASIC'
+                print('BASIC')
             elif block_type == ASCII:
-                s = 'ASCII'
+                print('ASCII')
+                for i in range(len(block_data)):
+                    if i % 256 == 0:
+                        f.write(bytearray(CAS_HEADER))
+                    f.write(bytes(block_data[i]))
+
             elif block_type == BINARY:
-                s = 'BINARY'
+                print('BINARY')
             elif block_type == CUSTOM:
-                s = 'CUSTOM'
+                print('CUSTOM')
             else:
                 print('Error: invalid block type', block_type)
                 return
-            print('Block type:', s)
 
 
 
@@ -331,7 +352,6 @@ def main():
     for now just make some beeps
     """
     for i in range(1, len(sys.argv)):
-        print('cas file:', sys.argv[i])
         c = cas()
         c.read(sys.argv[i])
         c.write('---' + sys.argv[i])
