@@ -304,12 +304,6 @@ class cas:
             start_address = block[3]
             end_address = block[4]
             run_address = block[5]
-            print('block_type:', hex(block_type))
-            print('block_fname:', block_fname)
-            print('len(block_data):', len(block_data))
-            print('start_address:', hex(start_address))
-            print('end_address:', hex(end_address))
-            print('run_address:', hex(run_address))
             cas_data.extend(CAS_HEADER)
             if block_type in [BASIC, ASCII, BINARY]:
                 for i in range(BLOCK_HEADER_LEN):
@@ -317,17 +311,14 @@ class cas:
                 for i in range(FNAME_LEN):
                     cas_data.append(ord(block_fname[i]))
             if block_type == BASIC:
-                print('BASIC')
                 cas_data.extend(CAS_HEADER)
                 cas_data.extend(block_data)
             elif block_type == ASCII:
-                print('ASCII')
                 for i in range(len(block_data)):
                     if i % 256 == 0:
                         cas_data.extend(CAS_HEADER)
                     cas_data.append(block_data[i])
             elif block_type == BINARY:
-                print('BINARY')
                 cas_data.extend(CAS_HEADER)
                 cas_data.append(start_address & 0xff)
                 cas_data.append((start_address & 0xff00) >> 8)
@@ -337,7 +328,6 @@ class cas:
                 cas_data.append((run_address & 0xff00) >> 8)
                 cas_data.extend(block_data)
             elif block_type == CUSTOM:
-                print('CUSTOM')
                 cas_data.extend(block_data)
             else:
                 print('Error: invalid block type', block_type)
