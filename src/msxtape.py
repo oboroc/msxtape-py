@@ -296,11 +296,7 @@ class cas:
         if self.blocks == []:
             print('Error: no cas data, nothing to write to', cas_name)
             return
-        f = open(cas_name, 'wb')
-        if not f:
-            print("Error: can't create file", cas_name)
-            return
-        print('create cas file:', cas_name)
+        cas_data = []
         for block in self.blocks:
             block_type = block[0]
             block_fname = block[1]
@@ -308,43 +304,46 @@ class cas:
             start_address = block[3]
             end_address = block[4]
             run_address = block[5]
-
             print('block_type:', hex(block_type))
             print('block_fname:', block_fname)
             print('len(block_data):', len(block_data))
             print('start_address:', hex(start_address))
             print('end_address:', hex(end_address))
             print('run_address:', hex(run_address))
-
-            f.write(bytearray(CAS_HEADER))
+            cas_data.extend(CAS_HEADER)
             if block_type in [BASIC, ASCII, BINARY]:
                 for i in range(BLOCK_HEADER_LEN):
-                    f.write(bytes(block_type))
-                fname_bytes = []
-                for i in range(len(block_fname)):
-                    fname_bytes.append(int(block_fname[i]))
-                for i in range(len(block_fname), FNAME_LEN):
-                    fname_bytes.append(0x20)    # pad with spaces
+                    cas_data.append(block_type)
+                for i in range(FNAME_LEN):
+                    cas_data.append(ord(block_fname[i]))
             if block_type == BASIC:
                 print('BASIC')
+                cas_data.extend(CAS_HEADER)
+                cas_data.extend(block_data)
             elif block_type == ASCII:
                 print('ASCII')
                 for i in range(len(block_data)):
                     if i % 256 == 0:
-                        f.write(bytearray(CAS_HEADER))
-                    f.write(bytes(block_data[i]))
-
+                        cas_data.extend(CAS_HEADER)
+                    cas_data.append(block_data[i])
             elif block_type == BINARY:
                 print('BINARY')
+                cas_data.extend(CAS_HEADER)
+                cas_data.append(start_address & 0xff)
+                cas_data.append((start_address & 0xff00) >> 8)
+                cas_data.append(end_address & 0xff)
+                cas_data.append((end_address & 0xff00) >> 8)
+                cas_data.append(run_address & 0xff)
+                cas_data.append((run_address & 0xff00) >> 8)
+                cas_data.extend(block_data)
             elif block_type == CUSTOM:
                 print('CUSTOM')
+                cas_data.extend(block_data)
             else:
                 print('Error: invalid block type', block_type)
                 return
-
-
-
-
+        with open(cas_name, 'wb') as f:
+            f.write(bytearray(cas_data))
 
 
 def main():
