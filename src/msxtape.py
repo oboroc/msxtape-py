@@ -4,7 +4,7 @@
 Encoding as per: https://github.com/oboroc/msx-books/blob/master/ru/msx2-fb-1993-ru.md#10
 """
 
-import sys, wave
+import sys, os, wave
 
 class wav_writer:
     def __init__(self, s_rate = 44100.0, s_width = 1):
@@ -38,7 +38,6 @@ class wav_writer:
             f.setsampwidth(self.sample_width)
             f.setframerate(self.sample_rate)
             f.writeframes(bytearray(self.pcm_data))
-        del ba
 
 
     def add_value(self, value):
@@ -130,12 +129,6 @@ class wav_writer:
             self.add_short_header(freq)
 
 
-    def add_cas(self, freq, cas):
-        """
-        take object cas and add pcm data based on it
-        """
-
-
 CAS_HEADER = [0x1f, 0xa6, 0xde, 0xba, 0xcc, 0x13, 0x7d, 0x74]
 CAS_HEADER_LEN = len(CAS_HEADER)
 BASIC = 0xd3
@@ -191,8 +184,7 @@ class cas:
         self.blocks = []
         while idx < len(cas_data):
             if not is_cas_header(cas_data, idx):
-                print('Error: no valid cas header at', dechex(idx))
-                return
+                raise ValueError('no valid cas header at ' + dechex(idx))
             idx = idx + CAS_HEADER_LEN
             # is it a 10 byte block header?
             if reps(cas_data, idx, BLOCK_HEADER_LEN) >= BLOCK_HEADER_LEN:
@@ -200,15 +192,6 @@ class cas:
                 idx = idx + BLOCK_HEADER_LEN
             else:
                 block_type = CUSTOM
-            if block_type == BASIC:
-                s = 'BASIC'
-            elif block_type == ASCII:
-                s = 'ASCII'
-            elif block_type == BINARY:
-                s = 'BINARY'
-            else:
-                s = 'CUSTOM'
-            #print(s, 'block start at', dechex(idx))
             # 6 bytes file name and cas header
             block_fname = ''
             if block_type in [BASIC, ASCII, BINARY]:
@@ -216,8 +199,7 @@ class cas:
                     block_fname = block_fname + chr(cas_data[idx + i])
                 idx = idx + FNAME_LEN
                 if not is_cas_header(cas_data, idx):
-                    print('Error: no cas header after cas file name at', dechex(idx))
-                    return
+                    raise ValueError('no cas header after cas file name at ' + dechex(idx))
                 idx = idx + CAS_HEADER_LEN
             block_data = []
             start_address = end_address = run_address = -1
@@ -230,15 +212,14 @@ class cas:
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-                #print('BASIC block end at', dechex(idx))
             elif block_type == ASCII:
                 ASCII_SEQ_LEN = 256
                 EOF = 0x1a
                 while idx < len(cas_data):
                     if len(cas_data) - idx < ASCII_SEQ_LEN:
-                        print('Error: expected', ASCII_SEQ_LEN, 'bytes sequence in ASCII block', block_fname,
-                              '; there is only', len(cas_data) - idx, 'bytes of data left')
-                        return
+                        raise ValueError('expected ' + str(ASCII_SEQ_LEN) + ' bytes sequence in ASCII block ' +
+                                         block_fname + '; there is only' + str(len(cas_data) - idx) +
+                                         ' bytes of data left')
                     found_eof = False
                     for i in range(ASCII_SEQ_LEN):
                         block_data.append(cas_data[idx + i])
@@ -248,54 +229,42 @@ class cas:
                     if found_eof:
                         break
                     if not is_cas_header(cas_data, idx):
-                        #print('Error: no cas header for next ASCII sequence at', dechex(idx))
-                        return
+                        raise ValueError('no cas header for next ASCII sequence at ' + dechex(idx))
                     idx = idx + CAS_HEADER_LEN
-                #print('ASCII block end at', dechex(idx))
                 if not found_eof:
-                    print('Error: no eof found in ascii block at', dechex(idx))
-                    return
+                    raise ValueError('no eof found in ascii block at ' + dechex(idx))
             elif block_type == BINARY:
                 start_address = cas_data[idx] + cas_data[idx + 1] * 256
-                #print('start address:', dechex(start_address))
                 end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
-                #print('end address:  ', dechex(end_address))
                 run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
-                #print('run address:  ', dechex(run_address))
                 code_len = end_address - start_address + 1
-                #print('code length: ', dechex(code_len))
                 idx = idx + 6
                 bin_start = idx
                 if idx + code_len > len(cas_data):
-                    print('Error: unexpected end in binary block data')
-                    return
+                    raise ValueError('unexpected end in binary block data at ' + dechex(idx))
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-                #print('block length:', dechex(idx - bin_start))
-                #print('BINARY block end at', dechex(idx))
             elif block_type == CUSTOM:
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
                         break
                     block_data.append(cas_data[idx])
                     idx = idx + 1
-                #print('CUSTOM block end at', dechex(idx))
             else:
-                print('Error: this is a bug, this code should never be reached')
-                return
+                raise ValueError('this is a bug, this code should never be reached')
             self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
+        del cas_data
 
 
-    def write(self, cas_name):
+    def write(self, fname, is_wav = False, s_rate = 44100.0, s_width = 1):
         """
-        create a cas file from cas_data
+        create a cas or wav (if is_wav == True) file from cas_data
         """
         if self.blocks == []:
-            print('Error: no cas data, nothing to write to', cas_name)
-            return
+            raise ValueError('no cas data, nothing to write to ' + fname)
         cas_data = []
         for block in self.blocks:
             block_type = block[0]
@@ -304,36 +273,82 @@ class cas:
             start_address = block[3]
             end_address = block[4]
             run_address = block[5]
-            cas_data.extend(CAS_HEADER)
+            if is_wav:
+                ww = wav_writer(s_rate, s_width)
+                freq = 1200.0
+                ww.add_long_header(freq)
+            else:
+                cas_data.extend(CAS_HEADER)
             if block_type in [BASIC, ASCII, BINARY]:
                 for i in range(BLOCK_HEADER_LEN):
-                    cas_data.append(block_type)
+                    if is_wav:
+                        ww.add_byte(freq, block_type)
+                    else:
+                        cas_data.append(block_type)
                 for i in range(FNAME_LEN):
-                    cas_data.append(ord(block_fname[i]))
+                    if is_wav:
+                        ww.add_byte(freq, ord(block_fname[i]))
+                    else:
+                        cas_data.append(ord(block_fname[i]))
             if block_type == BASIC:
-                cas_data.extend(CAS_HEADER)
-                cas_data.extend(block_data)
+                if is_wav:
+                    ww.add_short_header(freq)
+                    for i in range(len(block_data)):
+                        ww.add_byte(freq, block_data[i])
+                else:
+                    cas_data.extend(CAS_HEADER)
+                    cas_data.extend(block_data)
             elif block_type == ASCII:
                 for i in range(len(block_data)):
                     if i % 256 == 0:
-                        cas_data.extend(CAS_HEADER)
-                    cas_data.append(block_data[i])
+                        if is_wav:
+                            ww.add_short_header(freq)
+                        else:
+                            cas_data.extend(CAS_HEADER)
+                    if is_wav:
+                        ww.add_byte(freq, block_data[i])
+                    else:
+                        cas_data.append(block_data[i])
             elif block_type == BINARY:
-                cas_data.extend(CAS_HEADER)
-                cas_data.append(start_address & 0xff)
-                cas_data.append((start_address & 0xff00) >> 8)
-                cas_data.append(end_address & 0xff)
-                cas_data.append((end_address & 0xff00) >> 8)
-                cas_data.append(run_address & 0xff)
-                cas_data.append((run_address & 0xff00) >> 8)
-                cas_data.extend(block_data)
+                start_lo = start_address & 0xff
+                start_hi = (start_address & 0xff00) >> 8
+                end_lo = end_address & 0xff
+                end_hi = (end_address & 0xff00) >> 8
+                run_lo = run_address & 0xff
+                run_hi = (run_address & 0xff00) >> 8
+                if is_wav:
+                    ww.add_short_header(freq)
+                    ww.add_byte(freq, start_lo)
+                    ww.add_byte(freq, start_hi)
+                    ww.add_byte(freq, end_lo)
+                    ww.add_byte(freq, end_hi)
+                    ww.add_byte(freq, run_lo)
+                    ww.add_byte(freq, run_hi)
+                    for i in range(len(block_data)):
+                        ww.add_byte(freq, block_data[i])
+                else:
+                    cas_data.extend(CAS_HEADER)
+                    cas_data.append(start_lo)
+                    cas_data.append(start_hi)
+                    cas_data.append(end_lo)
+                    cas_data.append(end_hi)
+                    cas_data.append(run_lo)
+                    cas_data.append(run_hi)
+                    cas_data.extend(block_data)
             elif block_type == CUSTOM:
-                cas_data.extend(block_data)
+                if is_wav:
+                    for i in range(len(block_data)):
+                        ww.add_byte(freq, block_data[i])
+                else:
+                    cas_data.extend(block_data)
             else:
-                print('Error: invalid block type', block_type)
-                return
-        with open(cas_name, 'wb') as f:
-            f.write(bytearray(cas_data))
+                raise ValueError('invalid block type ' + hex(block_type))
+        if is_wav:
+            ww.write(fname)
+        else:
+            with open(fname, 'wb') as f:
+                f.write(bytearray(cas_data))
+        del cas_data
 
 
 def main():
@@ -343,12 +358,10 @@ def main():
     for i in range(1, len(sys.argv)):
         c = cas()
         c.read(sys.argv[i])
-        c.write('---' + sys.argv[i])
-        print('---')
-#        t = wav_writer()
-#        t.add_cas(1200, c)
-#        t.write('test.wav')
-#        del t
+#        c.write('~' + sys.argv[i])
+        bn = os.path.basename(sys.argv[i])
+        fname = os.path.splitext(bn)[0] + '.wav'
+        c.write(fname, True)
         del c
 
     
