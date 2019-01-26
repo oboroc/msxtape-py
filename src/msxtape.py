@@ -53,20 +53,6 @@ class wav_writer:
             raise ValueError('Unsupported sample width')
 
 
-    def add_tone(self, freq, dur):
-        """
-        add tone with specified frequency and duration to pcm data
-        """
-        period = self.sample_rate / freq
-        for i in range(int(dur * self.sample_rate)):
-            pos = i % period    # position within period
-            if pos * 2 < period:    # is it first half-period?
-                value = self.minvol
-            else:
-                value = self.maxvol
-            self.add_value(value)
-
-
     def add_bit_0(self, freq):
         """
         encode a bit with value of 0
@@ -358,11 +344,9 @@ def main():
     for i in range(1, len(sys.argv)):
         c = cas()
         c.read(sys.argv[i])
-#        c.write('~' + sys.argv[i])
         bn = os.path.basename(sys.argv[i])
         fname = os.path.splitext(bn)[0] + '.wav'
         c.write(fname, True)
-        del c
 
     
 if __name__ == "__main__":
