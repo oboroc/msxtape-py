@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-[hopefully a] python program for generating a wav file form a msx cas file
-Encoding as per: https://github.com/oboroc/msx-books/blob/master/ru/msx2-fb-1993-ru.md#10
+A program and a library for converting MSX cas files to wav
 """
 
 import sys, os, wave
