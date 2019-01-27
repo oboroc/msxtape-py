@@ -94,6 +94,11 @@ class wav_writer:
         self.add_bit_1(freq)
 
 
+# TODO: update short and long header timing as per The MSX Red Book:
+#   1200 Baud SHORT ... 3840 Cycles ... 1.5 Seconds
+#   1200 Baud LONG ... 15360 Cycles ... 6.1 Seconds
+#   2400 Baud SHORT ... 7936 Cycles ... 1.6 Seconds
+#   2400 Baud LONG ... 31744 Cycles ... 6.3 Seconds
     def add_short_header(self, freq):
         """
         encode ~1.7 seconds of freq * 2 tone
