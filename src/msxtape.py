@@ -39,7 +39,7 @@ class wav_writer:
             f.writeframes(bytearray(self.pcm_data))
 
 
-    def add_value(self, value):
+    def add_sample(self, value):
         """
         add value to pcm data
         """
@@ -64,9 +64,9 @@ class wav_writer:
         half_sample = round((last_pulse + 0.5) * samples_per_pulse)
         end_sample = round((last_pulse + 1) * samples_per_pulse)
         for i in range(half_sample - start_sample):
-            self.add_value(self.minvol)
+            self.add_sample(self.minvol)
         for i in range(end_sample - half_sample):
-            self.add_value(self.maxvol)
+            self.add_sample(self.maxvol)
 
 
     def add_bit_1(self, freq):
