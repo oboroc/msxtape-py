@@ -3,10 +3,12 @@
 A program and a library for converting MSX cas files to wav
 """
 
-import sys, os, wave
+import sys
+import os
+import wave
 
 class wav_writer:
-    def __init__(self, s_rate = 44100.0, s_width = 1):
+    def __init__(self, s_rate=44100.0, s_width=1):
         """
         initialize constants and variables
         """
@@ -18,7 +20,8 @@ class wav_writer:
             self.minvol = 0
             self.maxvol = 255
         elif self.sample_width > 1:
-            # -32768 and 32767 for 16 bit, should work with samples 2 bytes wide or more
+            # -32768 and 32767 for 16 bit, should work with samples 2 bytes
+            # wide or more
             self.minvol = -pow(2, self.sample_width * 8 - 1)
             self.maxvol = -self.minvol - 1
         else:
@@ -29,7 +32,8 @@ class wav_writer:
         """
         create a wav file from pcm data
         """
-        # pad pcm data with one extra byte if we ended up with odd number of bytes
+        # pad pcm data with one extra byte if we ended up with odd number of
+        # bytes
         if (len(self.pcm_data) & 1) == 1:
             self.pcm_data.append(0)
         with wave.open(f_name, 'w') as f:
@@ -95,10 +99,10 @@ class wav_writer:
 
 
 # TODO: update short and long header timing as per The MSX Red Book:
-#   1200 Baud SHORT ... 3840 Cycles ... 1.5 Seconds
-#   1200 Baud LONG ... 15360 Cycles ... 6.1 Seconds
-#   2400 Baud SHORT ... 7936 Cycles ... 1.6 Seconds
-#   2400 Baud LONG ... 31744 Cycles ... 6.3 Seconds
+#   1200 Baud SHORT ...  3840 Cycles ...  1.5 Seconds
+#   1200 Baud LONG ...  15360 Cycles ...  6.1 Seconds
+#   2400 Baud SHORT ...  7936 Cycles ...  1.6 Seconds
+#   2400 Baud LONG ...  31744 Cycles ...  6.3 Seconds
     def add_short_header(self, freq):
         """
         encode ~1.7 seconds of freq * 2 tone
@@ -207,9 +211,7 @@ class cas:
                 EOF = 0x1a
                 while idx < len(cas_data):
                     if len(cas_data) - idx < ASCII_SEQ_LEN:
-                        raise ValueError('expected ' + str(ASCII_SEQ_LEN) + ' bytes sequence in ASCII block ' +
-                                         block_fname + '; there is only' + str(len(cas_data) - idx) +
-                                         ' bytes of data left')
+                        raise ValueError('expected ' + str(ASCII_SEQ_LEN) + ' bytes sequence in ASCII block ' + block_fname + '; there is only' + str(len(cas_data) - idx) + ' bytes of data left')
                     found_eof = False
                     for i in range(ASCII_SEQ_LEN):
                         block_data.append(cas_data[idx + i])
@@ -249,7 +251,7 @@ class cas:
         del cas_data
 
 
-    def write(self, fname, is_wav = False, s_rate = 44100.0, s_width = 1):
+    def write(self, fname, is_wav=False, s_rate=44100.0, s_width=1):
         """
         create a cas or wav (if is_wav == True) file from cas_data
         """
