@@ -103,10 +103,11 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Visual Studio 2017
+# Visual Studio 2017 and 2019
 Debug/
 Release/
 v15/
+v16/
 *.VC.db
 *.VC.opendb
 UpgradeLog.htm
