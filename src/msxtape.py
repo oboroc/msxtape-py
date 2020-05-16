@@ -156,7 +156,7 @@ class cas:
             check if we have cas header starting at idx position
             """
             for i in range(CAS_HEADER_LEN):
-                if cas_data[idx + i] != CAS_HEADER[i]:
+                if lst[idx + i] != CAS_HEADER[i]:
                     return False
                     break
             return True
