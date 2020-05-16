@@ -8,7 +8,7 @@ import os
 import wave
 
 class wav_writer:
-    def __init__(self, s_rate=44100.0, s_width=1):
+    def __init__(self, s_rate = 44100.0, s_width = 1):
         """
         initialize constants and variables
         """
@@ -141,8 +141,8 @@ class cas:
 
         def reps(lst, idx, maxrep):
             """
-            count the number of same values in lst, repeated after the value at index idx
-            stop counting after maxrep
+            count the number of same values in lst, repeated after the value at
+            index idx stop counting after maxrep
             """
             rep = 1
             for i in range(1, min(maxrep, len(lst) - idx)):
@@ -163,8 +163,8 @@ class cas:
 
         def dechex(n):
             """
-            convert integer into string with it's value as a decimal,
-            followed with hex in brakets
+            convert integer into string with it's value as a decimal, followed
+            with hex in brakets
             """
             return str(n) + ' (' + hex(n) + ')'
 
@@ -193,7 +193,8 @@ class cas:
                     block_fname = block_fname + chr(cas_data[idx + i])
                 idx = idx + FNAME_LEN
                 if not is_cas_header(cas_data, idx):
-                    raise ValueError('no cas header after cas file name at ' + dechex(idx))
+                    raise ValueError('no cas header after cas file name at ' +
+                                     dechex(idx))
                 idx = idx + CAS_HEADER_LEN
             block_data = []
             start_address = end_address = run_address = -1
@@ -201,7 +202,8 @@ class cas:
                 BASIC_END_TOK = 7
                 BASIC_END_LEN = 7
                 while idx < len(cas_data):
-                    if cas_data[idx] == BASIC_END_TOK and reps(cas_data, idx, BASIC_END_LEN) >= BASIC_END_LEN:
+                    if (cas_data[idx] == BASIC_END_TOK and
+                        reps(cas_data, idx, BASIC_END_LEN) >= BASIC_END_LEN):
                         idx = idx + BASIC_END_LEN
                         break
                     block_data.append(cas_data[idx])
@@ -211,7 +213,11 @@ class cas:
                 EOF = 0x1a
                 while idx < len(cas_data):
                     if len(cas_data) - idx < ASCII_SEQ_LEN:
-                        raise ValueError('expected ' + str(ASCII_SEQ_LEN) + ' bytes sequence in ASCII block ' + block_fname + '; there is only' + str(len(cas_data) - idx) + ' bytes of data left')
+                        raise ValueError('expected ' + str(ASCII_SEQ_LEN) +
+                                         ' bytes sequence in ASCII block ' +
+                                         block_fname + '; there is only' +
+                                         str(len(cas_data) - idx) +
+                                         ' bytes of data left')
                     found_eof = False
                     for i in range(ASCII_SEQ_LEN):
                         block_data.append(cas_data[idx + i])
@@ -221,19 +227,23 @@ class cas:
                     if found_eof:
                         break
                     if not is_cas_header(cas_data, idx):
-                        raise ValueError('no cas header for next ASCII sequence at ' + dechex(idx))
+                        raise ValueError(
+                            'no cas header for next ASCII sequence at ' +
+                            dechex(idx))
                     idx = idx + CAS_HEADER_LEN
                 if not found_eof:
-                    raise ValueError('no eof found in ascii block at ' + dechex(idx))
+                    raise ValueError('no eof found in ascii block at ' +
+                                     dechex(idx))
             elif block_type == BINARY:
                 start_address = cas_data[idx] + cas_data[idx + 1] * 256
                 end_address = cas_data[idx + 2] + cas_data[idx + 3] * 256
                 run_address = cas_data[idx + 4] + cas_data[idx + 5] * 256
                 code_len = end_address - start_address + 1
                 idx = idx + 6
-                bin_start = idx
                 if idx + code_len > len(cas_data):
-                    raise ValueError('unexpected end in binary block data at ' + dechex(idx))
+                    raise ValueError(
+                        'unexpected end in binary block data at ' +
+                        dechex(idx))
                 while idx < len(cas_data):
                     if is_cas_header(cas_data, idx):
                         break
@@ -246,8 +256,10 @@ class cas:
                     block_data.append(cas_data[idx])
                     idx = idx + 1
             else:
-                raise ValueError('this is a bug, this code should never be reached')
-            self.blocks.append([block_type, block_fname, block_data, start_address, end_address, run_address])
+                raise ValueError(
+                    'this is a bug, this code should never be reached')
+            self.blocks.append([block_type, block_fname, block_data,
+                                start_address, end_address, run_address])
         del cas_data
 
 
