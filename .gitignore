@@ -117,3 +117,6 @@ UpgradeLog.htm
 *.wav
 *.exe
 *.bak
+
+# pycharm
+.idea
