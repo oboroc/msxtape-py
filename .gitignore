@@ -121,3 +121,6 @@ UpgradeLog.htm
 
 # pycharm
 .idea
+
+# Visual Studio Python temp files
+*.vsidx
